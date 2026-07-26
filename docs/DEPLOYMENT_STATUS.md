@@ -6,10 +6,10 @@ Status checked: 2026-07-26
 
 The chatbot is deployed on Render:
 
-- Chat UI: `https://chat-bot-xchi.onrender.com`
-- Protected chat API: `https://chat-bot-xchi.onrender.com/v1/chat`
-- Public UI backend: `https://chat-bot-xchi.onrender.com/v1/web-chat`
-- Health: `https://chat-bot-xchi.onrender.com/health`
+- Chat UI: `https://chat-bot-22j5.onrender.com`
+- Protected chat API: `https://chat-bot-22j5.onrender.com/v1/chat`
+- Public UI backend: `https://chat-bot-22j5.onrender.com/v1/web-chat`
+- Health: `https://chat-bot-22j5.onrender.com/health`
 
 The public UI is chat-only and uses the fixed ACI knowledge corpus. The protected
 `/v1/chat` endpoint remains available for GovernAI assessment testing.

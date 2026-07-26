@@ -1,0 +1,33 @@
+{
+  "name": "ACI Infotech public website corpus",
+  "tenant_id": "aci-infotech",
+  "retrieved_on": "2026-07-26",
+  "content_policy": "Concise paraphrased summaries of official public pages; not full-page copies.",
+  "documents": [
+    {
+      "file": "01_company_overview.md",
+      "source_url": "https://aciinfotech.com/"
+    },
+    {
+      "file": "02_applied_ai_ml.md",
+      "source_url": "https://aciinfotech.com/services/applied-ai-ml"
+    },
+    {
+      "file": "03_data_engineering.md",
+      "source_url": "https://aciinfotech.com/services/data-engineering"
+    },
+    {
+      "file": "04_cyber_security.md",
+      "source_url": "https://aciinfotech.com/services/cyber-security"
+    },
+    {
+      "file": "05_healthcare.md",
+      "source_url": "https://aciinfotech.com/industries/healthcare"
+    },
+    {
+      "file": "06_financial_services.md",
+      "source_url": "https://aciinfotech.com/industries/financial-services"
+    }
+  ]
+}
+

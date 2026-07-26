@@ -1,8 +1,7 @@
 FROM python:3.11-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    EMBEDDING_CACHE_DIR=/models/fastembed
+    PYTHONUNBUFFERED=1
 
 WORKDIR /srv/app
 
@@ -12,7 +11,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY app ./app
 COPY sample_data ./sample_data
 COPY scripts ./scripts
-RUN mkdir -p /models/fastembed && chown -R app:app /srv/app /models
+RUN chown -R app:app /srv/app
 
 USER app
 EXPOSE 8000

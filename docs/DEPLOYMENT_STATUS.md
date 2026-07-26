@@ -4,8 +4,15 @@ Status checked: 2026-07-26
 
 ## Current status
 
-This repository is not deployed. A local `.env` may be used for development, but there is
-no hosted application configuration or production/staging URL.
+The chatbot is deployed on Render:
+
+- Chat UI: `https://chat-bot-xchi.onrender.com`
+- Protected chat API: `https://chat-bot-xchi.onrender.com/v1/chat`
+- Public UI backend: `https://chat-bot-xchi.onrender.com/v1/web-chat`
+- Health: `https://chat-bot-xchi.onrender.com/health`
+
+The public UI is chat-only and uses the fixed ACI knowledge corpus. The protected
+`/v1/chat` endpoint remains available for GovernAI assessment testing.
 
 ## Secrets required when deploying
 
@@ -13,7 +20,7 @@ Create `.env` from `.env.example` and replace every example value.
 
 | Variable | Purpose | Used by |
 |---|---|---|
-| `CHATBOT_API_KEY` | Bearer key for chat and document-ingestion APIs | `/v1/chat`, `/v1/chat/completions`, `/v1/documents` |
+| `CHATBOT_API_KEY` | Bearer key for protected assessment chat APIs | `/v1/chat`, `/v1/chat/completions` |
 | `CLOUD_AUDIT_API_KEY` | Read-only assessment key for infrastructure-control evidence | `/api/audit/config` |
 | `MONITORING_API_KEY` | Read-only assessment key for monitoring evidence | `/api/monitoring/summary` |
 | `OPENAI_API_KEY` | OpenAI project key for response generation | OpenAI Responses API |

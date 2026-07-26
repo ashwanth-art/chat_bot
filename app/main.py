@@ -1,11 +1,11 @@
+import asyncio
 import logging
 import time
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Annotated
 from uuid import uuid4
 
-from fastapi import Depends, FastAPI, File, HTTPException, UploadFile
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
@@ -14,8 +14,8 @@ from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_
 from pymongo.errors import PyMongoError
 
 from app.config import get_settings
-from app.models import ChatRequest, ChatResponse, IngestResponse, Source
-from app.rag import generate_answer, ingest_document, mongo_client, retrieve
+from app.models import ChatRequest, ChatResponse, Source
+from app.rag import generate_answer, mongo_client, retrieve, seed_bundled_corpus
 from app.security import (
     require_audit_key,
     require_chatbot_key,
@@ -41,6 +41,11 @@ RETRIEVAL_COUNT = Histogram("chatbot_retrieved_chunks", "Retrieved chunks per ch
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     logger.info("service_started env=%s model=%s", settings.app_env, settings.openai_model)
+    try:
+        seeded = await asyncio.to_thread(seed_bundled_corpus)
+        logger.info("bundled_corpus_ready new_chunks=%d", seeded)
+    except (APIError, PyMongoError, RuntimeError, ValueError):
+        logger.exception("bundled_corpus_seed_failed")
     yield
     logger.info("service_stopped")
 
@@ -48,7 +53,7 @@ async def lifespan(_: FastAPI):
 app = FastAPI(
     title="GovernAI Open RAG Chatbot",
     version="1.0.0",
-    description="Tier-3-ready RAG chatbot using OpenAI, MongoDB Atlas, and local embeddings.",
+    description="ACI knowledge chatbot using OpenAI generation and embeddings with MongoDB Atlas.",
     lifespan=lifespan,
 )
 app.add_middleware(
@@ -139,27 +144,9 @@ async def chat(payload: ChatRequest) -> ChatResponse:
         LATENCY.labels("chat").observe(time.perf_counter() - started)
 
 
-@app.post(
-    "/v1/documents",
-    response_model=IngestResponse,
-    dependencies=[Depends(require_chatbot_key)],
-)
-async def ingest(
-    file: Annotated[UploadFile, File()],
-    tenant_id: str = "default",
-) -> IngestResponse:
-    if not file.filename:
-        raise HTTPException(status_code=400, detail="A filename is required.")
-    content = await file.read(10 * 1024 * 1024 + 1)
-    if len(content) > 10 * 1024 * 1024:
-        raise HTTPException(status_code=413, detail="Documents are limited to 10 MB.")
-    try:
-        count = ingest_document(file.filename, content, tenant_id)
-        REQUESTS.labels("ingest", "success").inc()
-        return IngestResponse(document=Path(file.filename).name, chunks=count, tenant_id=tenant_id)
-    except ValueError as exc:
-        REQUESTS.labels("ingest", "invalid").inc()
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+@app.post("/v1/web-chat", response_model=ChatResponse, include_in_schema=False)
+async def web_chat(payload: ChatRequest) -> ChatResponse:
+    return await chat(payload.model_copy(update={"tenant_id": "aci-infotech"}))
 
 
 @app.get("/metrics", include_in_schema=False)
@@ -186,7 +173,7 @@ async def audit_config() -> JSONResponse:
             "encryption_in_transit": "TLS is required at the reverse proxy in staging/production",
             "secrets": "environment variables; never returned by this endpoint",
             "data_store": "MongoDB Atlas with tenant-filtered vector search",
-            "embedding": "Local sentence-transformers model; no embedding API key used",
+            "embedding": "OpenAI text-embedding-3-small",
             "container_hardening": {
                 "read_only_root_filesystem": True,
                 "capabilities_dropped": "ALL",
@@ -197,7 +184,7 @@ async def audit_config() -> JSONResponse:
                 "tenant_filtering": True,
                 "pii_response_redaction": True,
                 "prompt_injection_guardrail": True,
-                "max_upload_mb": 10,
+                "knowledge_base": "Bundled ACI services and industries corpus",
             },
         },
         headers={"Cache-Control": "no-store"},

@@ -26,9 +26,3 @@ class ChatResponse(BaseModel):
     sources: list[Source]
     request_id: str
     grounded: bool
-
-
-class IngestResponse(BaseModel):
-    document: str
-    chunks: int
-    tenant_id: str

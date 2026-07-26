@@ -16,11 +16,10 @@ class Settings(BaseSettings):
     openai_reasoning_effort: str = "low"
     mongodb_uri: str = Field(min_length=20)
     mongodb_database: str = "aci_chatbot"
-    mongodb_collection: str = "knowledge_chunks"
-    mongodb_vector_index: str = "vector_index"
-    embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"
-    embedding_dimensions: int = Field(default=384, ge=1)
-    embedding_cache_dir: str | None = None
+    aci_collection: str = "aci_openai_chunks"
+    aci_vector_index: str = "openai_vector_index"
+    openai_embedding_model: str = "text-embedding-3-small"
+    openai_embedding_dimensions: int = Field(default=1536, ge=1)
     top_k: int = Field(default=5, ge=1, le=20)
     max_context_chars: int = Field(default=12000, ge=1000, le=50000)
     allow_origins: str = "http://localhost:8000"

@@ -20,24 +20,15 @@ Render automatically generates `CHATBOT_API_KEY`, `CLOUD_AUDIT_API_KEY`, and
 these values. Never put them in GitHub, screenshots, or assessment notes sent to
 unauthorized people.
 
-The free Render service can sleep and has limited memory. The project uses FastEmbed
-with ONNX to avoid the much larger PyTorch runtime, but a paid instance is recommended
-for reliable assessment sessions.
+The free Render service can sleep and has limited resources. A paid instance is
+recommended for reliable assessment sessions.
 
-## 2. Load the six ACI documents
+## 2. Confirm the backend knowledge seed
 
-Run this from PowerShell on a trusted computer, using the deployed URL and the chatbot
-key copied from Render:
-
-```powershell
-$env:CHATBOT_BASE_URL="https://<service>.onrender.com"
-$env:CHATBOT_API_KEY="<Render CHATBOT_API_KEY>"
-python scripts/ingest_aci_corpus.py
-```
-
-The first upload downloads the open-source MiniLM model. Wait for all six documents to
-report that they were indexed. Atlas can take several minutes to finish creating the
-`vector_index` search index.
+The backend automatically combines the six ACI source summaries into one logical
+document and embeds it with OpenAI `text-embedding-3-small`. No UI upload or deployment
+command is required. On the first deployment, allow a few minutes for Atlas to finish
+building the `openai_vector_index` search index.
 
 ## 3. Verify the assessment endpoints
 
@@ -59,7 +50,7 @@ Expected results:
 
 - `/health` reports MongoDB healthy and OpenAI configured.
 - The monitoring and audit endpoints return HTTP 200 with the correct keys.
-- `/v1/chat` returns an answer, `grounded: true`, and ACI source chunks.
+- `/v1/chat` and the browser UI return an answer, `grounded: true`, and ACI source chunks.
 - The same endpoints return HTTP 401 when a key is missing or incorrect.
 
 ## 4. Values for the GovernAI form

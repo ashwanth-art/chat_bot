@@ -51,10 +51,10 @@ network access to approved application hosts.
 - Prompt-injection blocking and untrusted-context instruction.
 - PII redaction on generated output.
 - Source citations and grounded/ungrounded response signal.
-- Upload size and document-type restrictions.
+- Backend-only bundled knowledge; no public document-upload endpoint.
 - No prompt, response, or secret logging.
 - Tenant-filtered MongoDB Atlas vector retrieval with TLS in transit.
-- Open-source local embeddings; document text is not sent to an embedding API.
+- OpenAI `text-embedding-3-small` embeddings stored in MongoDB Atlas.
 - Non-root, read-only, capability-dropped chatbot container.
 - Health endpoint and Prometheus request/latency/guardrail/retrieval metrics.
 - Reproducible CI checks, dependency versions, tests, and container build.

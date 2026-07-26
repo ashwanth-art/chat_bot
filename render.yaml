@@ -30,16 +30,14 @@ services:
         value: low
       - key: MONGODB_DATABASE
         value: aci_chatbot
-      - key: MONGODB_COLLECTION
-        value: knowledge_chunks
-      - key: MONGODB_VECTOR_INDEX
-        value: vector_index
-      - key: EMBEDDING_MODEL
-        value: sentence-transformers/all-MiniLM-L6-v2
-      - key: EMBEDDING_DIMENSIONS
-        value: "384"
-      - key: EMBEDDING_CACHE_DIR
-        value: /models/fastembed
+      - key: ACI_COLLECTION
+        value: aci_openai_chunks
+      - key: ACI_VECTOR_INDEX
+        value: openai_vector_index
+      - key: OPENAI_EMBEDDING_MODEL
+        value: text-embedding-3-small
+      - key: OPENAI_EMBEDDING_DIMENSIONS
+        value: "1536"
       - key: TOP_K
         value: "5"
       - key: MAX_CONTEXT_CHARS

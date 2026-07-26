@@ -1,11 +1,10 @@
 import hashlib
-import io
 import logging
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
-from openai import AsyncOpenAI
+from openai import AsyncOpenAI, OpenAI
 
 from app.config import get_settings
 from app.text_utils import chunk_text
@@ -23,23 +22,23 @@ def extract_text(filename: str, content: bytes) -> str:
     suffix = Path(filename).suffix.lower()
     if suffix in {".txt", ".md", ".csv"}:
         return content.decode("utf-8", errors="replace")
-    if suffix == ".pdf":
-        from pypdf import PdfReader
-
-        reader = PdfReader(io.BytesIO(content))
-        return "\n".join(page.extract_text() or "" for page in reader.pages)
-    raise ValueError("Supported document types: .txt, .md, .csv, and .pdf")
+    raise ValueError("Supported backend document types: .txt, .md, and .csv")
 
 
 @lru_cache
-def embedding_model() -> Any:
-    from fastembed import TextEmbedding
+def embedding_client() -> OpenAI:
+    return OpenAI(api_key=get_settings().openai_api_key)
 
+
+def embed_texts(texts: list[str]) -> list[list[float]]:
     settings = get_settings()
-    return TextEmbedding(
-        model_name=settings.embedding_model,
-        cache_dir=settings.embedding_cache_dir,
+    response = embedding_client().embeddings.create(
+        model=settings.openai_embedding_model,
+        input=texts,
+        dimensions=settings.openai_embedding_dimensions,
+        encoding_format="float",
     )
+    return [item.embedding for item in sorted(response.data, key=lambda item: item.index)]
 
 
 @lru_cache
@@ -57,7 +56,7 @@ def mongo_client() -> Any:
 
 def mongo_collection() -> Any:
     settings = get_settings()
-    return mongo_client()[settings.mongodb_database][settings.mongodb_collection]
+    return mongo_client()[settings.mongodb_database][settings.aci_collection]
 
 
 def ensure_indexes() -> None:
@@ -71,24 +70,24 @@ def ensure_indexes() -> None:
     )
 
     existing = {item.get("name") for item in collection.list_search_indexes()}
-    if settings.mongodb_vector_index not in existing:
+    if settings.aci_vector_index not in existing:
         model = SearchIndexModel(
             definition={
                 "fields": [
                     {
                         "type": "vector",
                         "path": "embedding",
-                        "numDimensions": settings.embedding_dimensions,
+                        "numDimensions": settings.openai_embedding_dimensions,
                         "similarity": "cosine",
                     },
                     {"type": "filter", "path": "tenant_id"},
                 ]
             },
-            name=settings.mongodb_vector_index,
+            name=settings.aci_vector_index,
             type="vectorSearch",
         )
         collection.create_search_index(model=model)
-        logger.info("mongodb_vector_index_requested name=%s", settings.mongodb_vector_index)
+        logger.info("mongodb_vector_index_requested name=%s", settings.aci_vector_index)
 
 
 def ingest_document(filename: str, content: bytes, tenant_id: str) -> int:
@@ -97,11 +96,12 @@ def ingest_document(filename: str, content: bytes, tenant_id: str) -> int:
     if not chunks:
         raise ValueError("The document has no extractable text.")
     ensure_indexes()
-    vectors = [vector.tolist() for vector in embedding_model().embed(chunks)]
+    vectors = embed_texts(chunks)
     from pymongo import ReplaceOne
 
     collection = mongo_collection()
     document_name = Path(filename).name
+    source_hash = hashlib.sha256(content).hexdigest()
     operations = []
     active_ids = []
     for index, (chunk, vector) in enumerate(zip(chunks, vectors, strict=True), start=1):
@@ -119,7 +119,8 @@ def ingest_document(filename: str, content: bytes, tenant_id: str) -> int:
                     "chunk": index,
                     "text": chunk,
                     "embedding": vector,
-                    "embedding_model": get_settings().embedding_model,
+                    "embedding_model": get_settings().openai_embedding_model,
+                    "source_hash": source_hash,
                 },
                 upsert=True,
             )
@@ -143,12 +144,12 @@ def ingest_document(filename: str, content: bytes, tenant_id: str) -> int:
 
 def retrieve(question: str, tenant_id: str) -> list[dict]:
     settings = get_settings()
-    vector = next(embedding_model().embed([question])).tolist()
+    vector = embed_texts([question])[0]
     results = mongo_collection().aggregate(
         [
             {
                 "$vectorSearch": {
-                    "index": settings.mongodb_vector_index,
+                    "index": settings.aci_vector_index,
                     "path": "embedding",
                     "queryVector": vector,
                     "numCandidates": max(settings.top_k * 20, 100),
@@ -176,6 +177,34 @@ def retrieve(question: str, tenant_id: str) -> list[dict]:
         }
         for hit in results
     ]
+
+
+def bundled_aci_corpus() -> bytes:
+    corpus_dir = Path(__file__).resolve().parents[1] / "sample_data" / "aci"
+    documents = sorted(corpus_dir.glob("[0-9][0-9]_*.md"))
+    if not documents:
+        raise RuntimeError("The bundled ACI knowledge corpus is missing.")
+    combined = "\n\n---\n\n".join(document.read_text(encoding="utf-8") for document in documents)
+    return combined.encode("utf-8")
+
+
+def seed_bundled_corpus() -> int:
+    settings = get_settings()
+    filename = "aci_services_and_industries.md"
+    content = bundled_aci_corpus()
+    source_hash = hashlib.sha256(content).hexdigest()
+    current = mongo_collection().find_one(
+        {
+            "tenant_id": "aci-infotech",
+            "document": filename,
+            "embedding_model": settings.openai_embedding_model,
+            "source_hash": source_hash,
+        },
+        {"_id": 1},
+    )
+    if current:
+        return 0
+    return ingest_document(filename, content, "aci-infotech")
 
 
 @lru_cache

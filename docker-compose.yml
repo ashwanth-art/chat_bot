@@ -7,8 +7,6 @@ services:
     read_only: true
     tmpfs:
       - /tmp
-    volumes:
-      - model_cache:/models
     networks: [app_net, observability]
     restart: unless-stopped
     security_opt:
@@ -71,7 +69,6 @@ networks:
   proxy_net:
 
 volumes:
-  model_cache:
   prometheus_data:
   grafana_data:
   mlflow_data:

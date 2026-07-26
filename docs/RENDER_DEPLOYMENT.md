@@ -10,8 +10,10 @@ are never stored in Git.
 2. Connect `https://github.com/ashwanth-art/chat_bot`.
 3. Render detects `render.yaml`. Create the `governai-rag-chatbot` service.
 4. When prompted, enter the secret values for `OPENAI_API_KEY` and `MONGODB_URI`.
-5. Wait for the deploy and open the assigned `https://<service>.onrender.com` URL.
-6. Confirm that `GET https://<service>.onrender.com/health` returns a healthy status.
+5. In the new Render service, open **Connect > Outbound** and copy every outbound CIDR.
+   Add those ranges in MongoDB Atlas under **Security > Network Access**.
+6. Wait for the deploy and open the assigned `https://<service>.onrender.com` URL.
+7. Confirm that `GET https://<service>.onrender.com/health` returns a healthy status.
 
 Render automatically generates `CHATBOT_API_KEY`, `CLOUD_AUDIT_API_KEY`, and
 `MONITORING_API_KEY`. In the service dashboard, open **Environment** to copy or replace

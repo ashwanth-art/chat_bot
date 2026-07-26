@@ -19,6 +19,8 @@ class Settings(BaseSettings):
     mongodb_collection: str = "knowledge_chunks"
     mongodb_vector_index: str = "vector_index"
     embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"
+    embedding_dimensions: int = Field(default=384, ge=1)
+    embedding_cache_dir: str | None = None
     top_k: int = Field(default=5, ge=1, le=20)
     max_context_chars: int = Field(default=12000, ge=1000, le=50000)
     allow_origins: str = "http://localhost:8000"

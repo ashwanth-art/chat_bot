@@ -2,7 +2,7 @@ FROM python:3.11-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    HF_HOME=/models/huggingface
+    EMBEDDING_CACHE_DIR=/models/fastembed
 
 WORKDIR /srv/app
 
@@ -12,11 +12,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY app ./app
 COPY sample_data ./sample_data
 COPY scripts ./scripts
-RUN mkdir -p /models/huggingface && chown -R app:app /srv/app /models
+RUN mkdir -p /models/fastembed && chown -R app:app /srv/app /models
 
 USER app
 EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
-  CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"
+  CMD python -c "import os, urllib.request; urllib.request.urlopen(f'http://localhost:{os.getenv(\"PORT\", \"8000\")}/health')"
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers"]
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --proxy-headers"]

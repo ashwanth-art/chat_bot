@@ -1,0 +1,48 @@
+services:
+  - type: web
+    name: governai-rag-chatbot
+    runtime: docker
+    plan: free
+    repo: https://github.com/ashwanth-art/chat_bot
+    branch: main
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    autoDeployTrigger: checksPass
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: PORT
+        value: "10000"
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: MONGODB_URI
+        sync: false
+      - key: CHATBOT_API_KEY
+        generateValue: true
+      - key: CLOUD_AUDIT_API_KEY
+        generateValue: true
+      - key: MONITORING_API_KEY
+        generateValue: true
+      - key: OPENAI_MODEL
+        value: gpt-5.6-sol
+      - key: OPENAI_REASONING_EFFORT
+        value: low
+      - key: MONGODB_DATABASE
+        value: aci_chatbot
+      - key: MONGODB_COLLECTION
+        value: knowledge_chunks
+      - key: MONGODB_VECTOR_INDEX
+        value: vector_index
+      - key: EMBEDDING_MODEL
+        value: sentence-transformers/all-MiniLM-L6-v2
+      - key: EMBEDDING_DIMENSIONS
+        value: "384"
+      - key: EMBEDDING_CACHE_DIR
+        value: /models/fastembed
+      - key: TOP_K
+        value: "5"
+      - key: MAX_CONTEXT_CHARS
+        value: "12000"
+      - key: LOG_LEVEL
+        value: INFO

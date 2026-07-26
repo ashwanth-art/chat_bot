@@ -11,7 +11,7 @@ embedding model.
 |---|---|---|
 | API and web chat | FastAPI + plain HTML/CSS/JS | Free / OSS |
 | Answer generation | OpenAI Responses API (`gpt-5.6-sol` by default) | API usage billed by OpenAI |
-| Embeddings | sentence-transformers MiniLM | Free / OSS |
+| Embeddings | FastEmbed ONNX + sentence-transformers MiniLM | Free / OSS |
 | Document and vector database | MongoDB Atlas Vector Search | Atlas plan dependent |
 | Monitoring | Prometheus + Grafana OSS | Free / OSS |
 | Model registry | MLflow | Free / OSS |
@@ -110,6 +110,10 @@ curl.exe "http://localhost:8000/api/monitoring/summary" -H "Authorization: Beare
 
 See [docs/ASSESSMENT_MAPPING.md](docs/ASSESSMENT_MAPPING.md) for the exact value to place
 in every assessment field.
+
+For a Render deployment, use the included `render.yaml` Blueprint and follow
+[docs/RENDER_DEPLOYMENT.md](docs/RENDER_DEPLOYMENT.md). It explains where every
+GovernAI credential comes from and provides verification commands.
 
 ## Security and operational notes
 

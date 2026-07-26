@@ -33,9 +33,13 @@ def extract_text(filename: str, content: bytes) -> str:
 
 @lru_cache
 def embedding_model() -> Any:
-    from sentence_transformers import SentenceTransformer
+    from fastembed import TextEmbedding
 
-    return SentenceTransformer(get_settings().embedding_model)
+    settings = get_settings()
+    return TextEmbedding(
+        model_name=settings.embedding_model,
+        cache_dir=settings.embedding_cache_dir,
+    )
 
 
 @lru_cache
@@ -68,14 +72,13 @@ def ensure_indexes() -> None:
 
     existing = {item.get("name") for item in collection.list_search_indexes()}
     if settings.mongodb_vector_index not in existing:
-        dimensions = embedding_model().get_sentence_embedding_dimension()
         model = SearchIndexModel(
             definition={
                 "fields": [
                     {
                         "type": "vector",
                         "path": "embedding",
-                        "numDimensions": dimensions,
+                        "numDimensions": settings.embedding_dimensions,
                         "similarity": "cosine",
                     },
                     {"type": "filter", "path": "tenant_id"},
@@ -94,7 +97,7 @@ def ingest_document(filename: str, content: bytes, tenant_id: str) -> int:
     if not chunks:
         raise ValueError("The document has no extractable text.")
     ensure_indexes()
-    vectors = embedding_model().encode(chunks, normalize_embeddings=True).tolist()
+    vectors = [vector.tolist() for vector in embedding_model().embed(chunks)]
     from pymongo import ReplaceOne
 
     collection = mongo_collection()
@@ -140,7 +143,7 @@ def ingest_document(filename: str, content: bytes, tenant_id: str) -> int:
 
 def retrieve(question: str, tenant_id: str) -> list[dict]:
     settings = get_settings()
-    vector = embedding_model().encode(question, normalize_embeddings=True).tolist()
+    vector = next(embedding_model().embed([question])).tolist()
     results = mongo_collection().aggregate(
         [
             {

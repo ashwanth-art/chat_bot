@@ -15,6 +15,20 @@ from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_
 from pymongo.errors import PyMongoError
 
 from app.config import get_settings
+from app.evidence import (
+    agency_posture,
+    alerting_posture,
+    credential_posture,
+    deployment_posture,
+    evidence_manifest,
+    model_provenance,
+    observed_service_levels,
+    output_handling_posture,
+    retention_posture,
+    vector_store_posture,
+    verify_corpus_integrity,
+)
+from app.limits import check_and_charge, limits_configuration, limits_usage
 from app.models import ChatRequest, ChatResponse, Source
 from app.rag import generate_answer, mongo_client, retrieve, seed_bundled_corpus
 from app.security import (
@@ -43,6 +57,9 @@ GUARDRAIL_BLOCKS = Counter(
     "chatbot_guardrail_blocks_total", "Requests blocked by guardrails", ["reason"]
 )
 RETRIEVAL_COUNT = Histogram("chatbot_retrieved_chunks", "Retrieved chunks per chat")
+LIMIT_REJECTIONS = Counter(
+    "chatbot_limit_rejections_total", "Requests refused by a configured limit", ["reason"]
+)
 TRACE_ID_PATTERN = re.compile(r"^[a-zA-Z0-9_-]{8,128}$")
 
 
@@ -107,6 +124,40 @@ async def chat(payload: ChatRequest) -> ChatResponse:
         "",
     )
     start_trace(request_id, payload.tenant_id)
+    limit_started = time.perf_counter()
+    decision = check_and_charge(payload.tenant_id, payload.max_tokens)
+    if not decision.allowed:
+        LIMIT_REJECTIONS.labels(decision.reason).inc()
+        REQUESTS.labels("chat", "rate_limited").inc()
+        record_stage(
+            request_id,
+            name="request_limits",
+            status="blocked",
+            summary="A configured request or cost ceiling refused the request before retrieval.",
+            duration_ms=round((time.perf_counter() - limit_started) * 1000),
+            metrics={"reason": decision.reason, "model_called": False},
+        )
+        complete_trace(
+            request_id,
+            status="blocked",
+            duration_ms=round((time.perf_counter() - started) * 1000),
+        )
+        return JSONResponse(
+            status_code=429,
+            content={"detail": decision.detail, "request_id": request_id},
+            headers={"Retry-After": str(decision.retry_after_seconds)},
+        )
+    record_stage(
+        request_id,
+        name="request_limits",
+        status="pass",
+        summary="The request was admitted within the per-caller rate ceiling and daily budget.",
+        duration_ms=round((time.perf_counter() - limit_started) * 1000),
+        metrics={
+            "requests_per_minute_ceiling": limits_configuration()["requests_per_minute"],
+            "tokens_charged_today": limits_usage()["tokens_charged"],
+        },
+    )
     input_guardrail_started = time.perf_counter()
     if contains_prompt_injection(question):
         GUARDRAIL_BLOCKS.labels("prompt_injection").inc()
@@ -308,8 +359,13 @@ async def monitoring_summary() -> dict:
             "guardrail blocks",
             "retrieval count",
             "request-correlated RAG stages",
+            "limit rejections",
         ],
         "log_policy": "Prompts, responses, and API keys are not written to application logs.",
+        "service_levels": observed_service_levels(),
+        "alerting": alerting_posture(),
+        "usage": limits_usage(),
+        "retention": retention_posture(),
     }
 
 
@@ -348,6 +404,31 @@ async def audit_config() -> JSONResponse:
                 "prompt_injection_guardrail": True,
                 "knowledge_base": "Bundled ACI services and industries corpus",
             },
+            "deployment": deployment_posture(),
+            "credentials": credential_posture(),
+            "request_limits": limits_configuration(),
+            "retention": retention_posture(),
+            "vector_store": vector_store_posture(),
+            "model": model_provenance(),
+            "agency": agency_posture(),
+            "output_handling": output_handling_posture(),
+            "corpus_integrity": verify_corpus_integrity(),
+            "evidence": {
+                "manifest_endpoint": "/api/evidence/manifest",
+                "schema_version": "1.0",
+                "authorization": "read-only audit key",
+            },
         },
         headers={"Cache-Control": "no-store"},
     )
+
+
+@app.get("/api/evidence/manifest", dependencies=[Depends(require_audit_key)])
+async def evidence_manifest_endpoint() -> JSONResponse:
+    """A GovernAI 1.0 evidence manifest assembled at read time.
+
+    Measured procedures are recomputed here and now; build procedures come from
+    the pipeline; attested procedures carry an owner and a review date and
+    degrade on their own when that date passes.
+    """
+    return JSONResponse(evidence_manifest(), headers={"Cache-Control": "no-store"})

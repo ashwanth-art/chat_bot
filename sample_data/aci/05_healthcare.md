@@ -30,3 +30,6 @@ readmission rates, denial rates, and days in accounts receivable. Relevant techn
 listed on the page include Databricks, MLflow, Power BI, Kafka, Snowflake, Python, AWS,
 FHIR, and HL7.
 
+The page also outlines managed-services engagements covering ongoing platform operation,
+monitoring, and compliance reporting for healthcare clients after initial delivery.
+

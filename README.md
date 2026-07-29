@@ -50,10 +50,34 @@ GET /api/monitoring/requests/{request_id}
 Authorization: Bearer <MONITORING_API_KEY>
 ```
 
-The trace reports input and scope guardrails, tenant-filtered retrieval counts and scores,
-generation latency, and output-validation decisions. It does not contain raw prompts,
-retrieved text, generated answers, tenant identifiers, or credentials. Traces are
+The trace reports request limits, input and scope guardrails, tenant-filtered retrieval counts
+and scores, generation latency, and output-validation decisions. It does not contain raw
+prompts, retrieved text, generated answers, tenant identifiers, or credentials. Traces are
 memory-only, expire after one hour, and are bounded to the most recent 500 requests.
+
+## Evidence surfaces for Tier 3 assessment
+
+```text
+GET /api/evidence/manifest
+Authorization: Bearer <CLOUD_AUDIT_API_KEY>
+```
+
+Returns a GovernAI 1.0 evidence manifest — one verdict per named procedure. Each entry declares
+whether it is **measured** (recomputed from the running service now), **build** (produced by the
+pipeline into `evidence/build.json`), or **attested** (a named owner's assertion, which degrades
+automatically once its review-due date passes). `GET /api/audit/config` carries the underlying
+configuration facts, including live corpus digest verification and a self-check that reports
+weak or placeholder service keys by name without ever returning key material.
+
+See [docs/EVIDENCE.md](docs/EVIDENCE.md) for the full procedure catalogue and the list of
+deliberately open items this deployment carries so an assessment demonstrates real findings.
+
+## Request limits
+
+Each caller is bounded to `RATE_LIMIT_REQUESTS_PER_MINUTE` requests and the deployment to
+`DAILY_TOKEN_BUDGET` tokens per day, both enforced before the model is called. Enforcement is
+process-local and the audit adapter reports `distributed_enforcement: false` rather than
+implying a cluster-wide guarantee.
 
 ## Local Docker
 

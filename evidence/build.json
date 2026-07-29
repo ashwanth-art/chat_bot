@@ -1,0 +1,32 @@
+{
+  "generated_at": "2026-07-29T09:48:23+00:00",
+  "generator": "scripts/generate_build_evidence.py",
+  "sbom": {
+    "tool": "cyclonedx-py",
+    "tool_available": true,
+    "format": "CycloneDX",
+    "components": 8,
+    "digest": "b02d83feec67879c26bfe26e443d9abad38a9f2d74c0f67310cb46b4eb98b63c",
+    "artifact_ref": "evidence/sbom.cdx.json"
+  },
+  "dependency_audit": {
+    "tool": "pip-audit",
+    "tool_available": true,
+    "packages_scanned": 82,
+    "vulnerabilities": 0,
+    "advisories": []
+  },
+  "tests": {
+    "runner": "pytest",
+    "exit_code": 0,
+    "passed": 26,
+    "failed": 0,
+    "security_tests": 5
+  },
+  "change_control": {
+    "commit": "2e5f95a6feb6dce287f925b53dc090d704f5fafe",
+    "branch": "main",
+    "pipeline": "GitHub Actions",
+    "test_gate": "ruff + pytest + docker build"
+  }
+}

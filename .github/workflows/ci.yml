@@ -14,7 +14,17 @@ jobs:
           python-version: "3.11"
           cache: pip
       - run: pip install -r requirements-dev.txt
-      - run: ruff check app tests
+      - run: ruff check app scripts tests
       - run: pytest -q
+      - name: Regenerate governance build evidence
+        run: python scripts/generate_build_evidence.py
+      - name: Publish evidence artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: governance-evidence-${{ github.sha }}
+          path: |
+            evidence/build.json
+            evidence/sbom.cdx.json
+          if-no-files-found: error
       - run: docker build -t governai-open-rag:${{ github.sha }} .
 

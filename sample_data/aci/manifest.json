@@ -3,31 +3,54 @@
   "tenant_id": "aci-infotech",
   "retrieved_on": "2026-07-26",
   "content_policy": "Concise paraphrased summaries of official public pages; not full-page copies.",
+  "integrity": {
+    "algorithm": "sha256",
+    "baseline_approved_on": "2026-07-26",
+    "baseline_approved_by": "corpus-owner@aciinfotech.com",
+    "note": "Each digest below is the content that was approved at ingestion. A live recomputation that disagrees means the file changed after approval and has to be re-reviewed and re-ingested."
+  },
   "documents": [
     {
       "file": "01_company_overview.md",
-      "source_url": "https://aciinfotech.com/"
+      "source_url": "https://aciinfotech.com/",
+      "sha256": "72cbf02aa31e830275353416308dc98dca27b60f70b1fe7f31cb08167276a8f9",
+      "approved_on": "2026-07-26",
+      "classification": "public"
     },
     {
       "file": "02_applied_ai_ml.md",
-      "source_url": "https://aciinfotech.com/services/applied-ai-ml"
+      "source_url": "https://aciinfotech.com/services/applied-ai-ml",
+      "sha256": "3c50559a8cb05ba3d667970ecc8d2b20f19b3cddd941be810ae88f7dbfd6d9cd",
+      "approved_on": "2026-07-26",
+      "classification": "public"
     },
     {
       "file": "03_data_engineering.md",
-      "source_url": "https://aciinfotech.com/services/data-engineering"
+      "source_url": "https://aciinfotech.com/services/data-engineering",
+      "sha256": "50a8a8e6215968622aebad09ad213628d37013f88208907db409473cc55878a4",
+      "approved_on": "2026-07-26",
+      "classification": "public"
     },
     {
       "file": "04_cyber_security.md",
-      "source_url": "https://aciinfotech.com/services/cyber-security"
+      "source_url": "https://aciinfotech.com/services/cyber-security",
+      "sha256": "f7d3b76398000baa8e5c7b556b6f878613d3f93d2cec1c287311198a0d95a267",
+      "approved_on": "2026-07-26",
+      "classification": "public"
     },
     {
       "file": "05_healthcare.md",
-      "source_url": "https://aciinfotech.com/industries/healthcare"
+      "source_url": "https://aciinfotech.com/industries/healthcare",
+      "sha256": "b34fe55575d8b51f6cb2ab4f496914816c4f48110168d95ac345734770b378cc",
+      "approved_on": "2026-07-26",
+      "classification": "public"
     },
     {
       "file": "06_financial_services.md",
-      "source_url": "https://aciinfotech.com/industries/financial-services"
+      "source_url": "https://aciinfotech.com/industries/financial-services",
+      "sha256": "88f59af91c235f1acdd303cebcdbe1bca574eb66925b0202f27f09d38a28dc80",
+      "approved_on": "2026-07-26",
+      "classification": "public"
     }
   ]
 }
-

@@ -1,0 +1,217 @@
+{
+  "schemaVersion": "1.0",
+  "owner": "ai-governance@aciinfotech.com",
+  "note": "Attested evidence procedures. Every entry names an owner, an approval date and a review-due date. Status is derived from those dates at read time — an entry whose review is overdue degrades on its own, without anybody editing this file. Entries with an explicit status describe a control that is genuinely absent; they are not placeholders.",
+  "procedures": {
+    "document-ai-governance-policy": {
+      "owner": "Head of AI Governance",
+      "approved_on": "2026-06-01",
+      "review_due": "2026-12-01",
+      "artifact_ref": "ai-governance-policy-v3",
+      "summary": "The AI governance policy names the accountable owner, the approval gate for model or corpus change, and the review cadence for this RAG service."
+    },
+    "document-role-assignment": {
+      "owner": "Head of AI Governance",
+      "approved_on": "2026-06-01",
+      "review_due": "2026-12-01",
+      "artifact_ref": "raci-rag-service",
+      "summary": "A named accountable owner, service owner and reviewer are assigned for the assistant, with deputies recorded."
+    },
+    "document-risk-register": {
+      "owner": "Risk Management",
+      "approved_on": "2026-06-15",
+      "review_due": "2026-09-15",
+      "artifact_ref": "ai-risk-register-2026q3",
+      "summary": "Retrieval, grounding, prompt-injection, tenant-isolation and vendor-dependency risks are registered with owners and treatment dates."
+    },
+    "document-risk-treatment": {
+      "owner": "Risk Management",
+      "approved_on": "2026-06-15",
+      "review_due": "2026-09-15",
+      "artifact_ref": "ai-risk-treatment-2026q3",
+      "summary": "Each registered risk carries an accepted treatment, a residual-risk rating and a named approver."
+    },
+    "document-human-oversight": {
+      "owner": "Service Operations",
+      "approved_on": "2026-05-20",
+      "review_due": "2026-11-20",
+      "artifact_ref": "human-oversight-procedure-v2",
+      "summary": "The escalation path from an unsatisfactory answer to a human responder is documented, including the shutdown switch and who may operate it."
+    },
+    "document-incident-runbook": {
+      "owner": "Security Operations",
+      "approved_on": "2026-05-20",
+      "review_due": "2026-11-20",
+      "artifact_ref": "ai-incident-runbook-v2",
+      "summary": "The AI incident runbook covers grounding failure, guardrail bypass, corpus poisoning and provider outage, with notification timelines."
+    },
+    "document-supplier-assessment": {
+      "owner": "Vendor Risk",
+      "approved_on": "2026-06-10",
+      "review_due": "2026-12-10",
+      "artifact_ref": "supplier-assessment-2026",
+      "summary": "OpenAI, MongoDB Atlas and Render are assessed for security posture, data handling and subprocessor disclosure."
+    },
+    "document-vendor-contracts": {
+      "owner": "Legal",
+      "approved_on": "2026-06-10",
+      "review_due": "2026-12-10",
+      "artifact_ref": "vendor-contract-register",
+      "summary": "Contractual terms for the model provider and the vector store are registered, including data-use and retention commitments."
+    },
+    "document-privacy-notice": {
+      "owner": "Privacy Office",
+      "approved_on": "2026-06-05",
+      "review_due": "2026-12-05",
+      "artifact_ref": "assistant-privacy-notice",
+      "summary": "The published notice states what the assistant retains, what it sends to the model provider, and how to reach a human."
+    },
+    "document-ai-transparency": {
+      "owner": "Product",
+      "approved_on": "2026-06-05",
+      "review_due": "2026-12-05",
+      "artifact_ref": "assistant-disclosure-copy",
+      "summary": "The web client discloses that responses are AI-generated and states the knowledge-base boundary."
+    },
+    "document-system-card": {
+      "owner": "Engineering",
+      "approved_on": "2026-07-01",
+      "review_due": "2027-01-01",
+      "artifact_ref": "assistant-system-card-v2",
+      "summary": "The system card records intended use, out-of-scope use, the retrieval design, the model and embedding versions, and known limitations."
+    },
+    "document-change-policy": {
+      "owner": "Engineering",
+      "approved_on": "2026-07-01",
+      "review_due": "2027-01-01",
+      "artifact_ref": "change-control-policy-v4",
+      "summary": "Model, prompt and corpus changes require review, a passing test suite and a recorded approver before deployment."
+    },
+    "document-feedback-process": {
+      "owner": "Service Operations",
+      "approved_on": "2026-06-20",
+      "review_due": "2026-12-20",
+      "artifact_ref": "assistant-feedback-loop",
+      "summary": "User-reported wrong answers are triaged, linked to the retrieved sources, and fed into corpus corrections."
+    },
+    "document-training-program": {
+      "owner": "People Operations",
+      "approved_on": "2026-04-15",
+      "review_due": "2027-04-15",
+      "artifact_ref": "ai-literacy-programme-2026",
+      "summary": "Operators of the assistant complete AI-literacy and escalation training with completion recorded."
+    },
+    "document-evaluation-methodology": {
+      "owner": "Applied AI",
+      "approved_on": "2026-01-15",
+      "review_due": "2026-07-15",
+      "artifact_ref": "grounding-eval-methodology-v1",
+      "summary": "The offline grounding and answer-quality evaluation methodology defines the question set, scoring rubric and acceptance thresholds."
+    },
+    "artifact-bias-evaluation": {
+      "owner": "Applied AI",
+      "approved_on": "2025-12-01",
+      "review_due": "2026-03-31",
+      "artifact_ref": "bias-eval-2025q4",
+      "summary": "Answer quality was compared across industry and role segments of the question set, with variance recorded per segment."
+    },
+    "artifact-threat-model": {
+      "owner": "Security Architecture",
+      "approved_on": "2026-06-25",
+      "review_due": "2026-12-25",
+      "artifact_ref": "rag-threat-model-v3",
+      "summary": "The threat model covers the retrieval boundary, the model provider trust boundary, tenant isolation in the vector store, and indirect prompt injection through corpus content."
+    },
+    "artifact-architecture-diagram": {
+      "owner": "Engineering",
+      "approved_on": "2026-07-01",
+      "review_due": "2027-01-01",
+      "artifact_ref": "assistant-architecture-c4",
+      "summary": "The current architecture records every hop from the browser through the API, guardrails, vector store and model provider."
+    },
+    "artifact-data-flow": {
+      "owner": "Privacy Office",
+      "approved_on": "2026-07-01",
+      "review_due": "2027-01-01",
+      "artifact_ref": "assistant-data-flow",
+      "summary": "The data-flow record shows what leaves the service boundary, to which processor, and in which region."
+    },
+    "artifact-output-sink-review": {
+      "owner": "Engineering",
+      "approved_on": "2026-07-10",
+      "review_due": "2027-01-10",
+      "artifact_ref": "output-sink-review-2026-07",
+      "summary": "Every sink that renders model output was reviewed; the web client inserts answers as text nodes and never as markup, and no output reaches a shell, query or template interpreter."
+    },
+    "artifact-output-encoding": {
+      "owner": "Engineering",
+      "approved_on": "2026-07-10",
+      "review_due": "2027-01-10",
+      "artifact_ref": "output-encoding-review-2026-07",
+      "summary": "Model output is treated as untrusted text: it is returned through a typed response model and rendered without HTML interpretation."
+    },
+    "artifact-encryption-configuration": {
+      "owner": "Platform Engineering",
+      "approved_on": "2026-06-28",
+      "review_due": "2026-12-28",
+      "artifact_ref": "tls-and-atlas-encryption",
+      "summary": "Transport is TLS-terminated at the platform edge and the vector store enforces encryption at rest with provider-managed keys."
+    },
+    "artifact-network-configuration": {
+      "owner": "Platform Engineering",
+      "approved_on": "2026-06-28",
+      "review_due": "2026-12-28",
+      "artifact_ref": "network-exposure-review",
+      "summary": "Only the HTTPS service port is exposed; the vector store is reached outbound over TLS with an allow-listed source."
+    },
+    "artifact-access-review": {
+      "owner": "Security Operations",
+      "approved_on": "2026-07-05",
+      "review_due": "2026-10-05",
+      "artifact_ref": "entitlement-review-2026q3",
+      "summary": "Repository, platform and vector-store entitlements were reviewed against role, with least-privilege service accounts confirmed."
+    },
+    "artifact-training-completion": {
+      "owner": "People Operations",
+      "approved_on": "2026-04-20",
+      "review_due": "2027-04-20",
+      "artifact_ref": "training-completion-2026",
+      "summary": "Completion records exist for every named operator of the assistant."
+    },
+    "artifact-explainability-tests": {
+      "owner": "Applied AI",
+      "approved_on": "2026-06-30",
+      "review_due": "2026-12-30",
+      "artifact_ref": "citation-fidelity-tests",
+      "summary": "Answers are tested for citation fidelity: every claim in a grounded answer must map to a returned source chunk."
+    },
+    "artifact-privacy-tests": {
+      "owner": "Privacy Office",
+      "approved_on": "2026-06-30",
+      "review_due": "2026-12-30",
+      "artifact_ref": "pii-redaction-tests",
+      "summary": "The response redaction path is unit-tested against synthetic identifiers, card numbers and contact details."
+    },
+    "document-record-retention": {
+      "status": "fail",
+      "owner": "Privacy Office",
+      "summary": "No retention schedule is configured or enforced for this deployment. Request traces expire on a fixed in-memory timer and stored corpus records have no defined disposal date."
+    },
+    "document-disaster-recovery": {
+      "status": "partial",
+      "owner": "Platform Engineering",
+      "approved_on": "2026-06-28",
+      "review_due": "2026-12-28",
+      "artifact_ref": "assistant-dr-plan-v1",
+      "summary": "A recovery plan exists and names the rebuild path from source and re-ingestion, but it has never been exercised and no recovery-time objective has been measured."
+    },
+    "document-backup-plan": {
+      "status": "partial",
+      "owner": "Platform Engineering",
+      "approved_on": "2026-06-28",
+      "review_due": "2026-12-28",
+      "artifact_ref": "assistant-backup-plan-v1",
+      "summary": "The vector store relies on the provider's managed snapshots. No independent restore of the corpus collection has been tested by this team."
+    }
+  }
+}

@@ -161,3 +161,21 @@ def test_observed_service_levels_declare_objectives_and_breaches():
     for breach in levels["breaches"]:
         assert breach["objective"] in {"p95_latency_ms", "error_rate"}
         assert breach["observed"] is not None
+
+
+def test_the_container_image_carries_every_directory_evidence_reads_from():
+    """The manifest is read at request time, so a directory left out of the image
+    silently downgrades every procedure in it to not_assessed. This caught exactly
+    that: `evidence/` was absent from the image while the code read it happily in
+    development."""
+    dockerfile = (evidence.REPO_ROOT / "Dockerfile").read_text(encoding="utf-8")
+    copied = {
+        line.split()[1].strip("./")
+        for line in dockerfile.splitlines()
+        if line.startswith("COPY ")
+    }
+    required = {
+        path.relative_to(evidence.REPO_ROOT).parts[0]
+        for path in (evidence.CORPUS_DIR, evidence.ATTESTATIONS, evidence.BUILD_EVIDENCE)
+    }
+    assert required <= copied, f"not copied into the image: {sorted(required - copied)}"

@@ -10,6 +10,9 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 COPY app ./app
 COPY sample_data ./sample_data
+# Read at request time by /api/evidence/manifest. Without it the service serves
+# only its measured procedures and an assessment reports the rest not_assessed.
+COPY evidence ./evidence
 RUN chown -R app:app /srv/app
 
 USER app

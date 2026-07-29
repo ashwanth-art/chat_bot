@@ -36,7 +36,15 @@ from app.security import (
     require_chatbot_key,
     require_monitoring_key,
 )
-from app.telemetry import complete_trace, get_trace, record_stage, start_trace
+from app.telemetry import (
+    complete_trace,
+    get_trace,
+    metric_series,
+    notable_events,
+    record_outcome,
+    record_stage,
+    start_trace,
+)
 from app.text_utils import (
     contains_prompt_injection,
     contains_sensitive_extraction_request,
@@ -129,6 +137,13 @@ async def chat(payload: ChatRequest) -> ChatResponse:
     if not decision.allowed:
         LIMIT_REJECTIONS.labels(decision.reason).inc()
         REQUESTS.labels("chat", "rate_limited").inc()
+        record_outcome(
+            status="rate_limited",
+            duration_ms=round((time.perf_counter() - started) * 1000),
+            endpoint="chat",
+            request_id=request_id,
+            reason=decision.reason,
+        )
         record_stage(
             request_id,
             name="request_limits",
@@ -162,6 +177,13 @@ async def chat(payload: ChatRequest) -> ChatResponse:
     if contains_prompt_injection(question):
         GUARDRAIL_BLOCKS.labels("prompt_injection").inc()
         REQUESTS.labels("chat", "blocked").inc()
+        record_outcome(
+            status="blocked",
+            duration_ms=round((time.perf_counter() - started) * 1000),
+            endpoint="chat",
+            request_id=request_id,
+            reason="prompt_injection",
+        )
         record_stage(
             request_id,
             name="input_guardrail",
@@ -185,6 +207,13 @@ async def chat(payload: ChatRequest) -> ChatResponse:
     if contains_sensitive_extraction_request(question):
         GUARDRAIL_BLOCKS.labels("sensitive_extraction").inc()
         REQUESTS.labels("chat", "blocked").inc()
+        record_outcome(
+            status="blocked",
+            duration_ms=round((time.perf_counter() - started) * 1000),
+            endpoint="chat",
+            request_id=request_id,
+            reason="sensitive_extraction",
+        )
         record_stage(
             request_id,
             name="input_guardrail",
@@ -208,6 +237,13 @@ async def chat(payload: ChatRequest) -> ChatResponse:
     if contains_unsupported_realtime_request(question):
         GUARDRAIL_BLOCKS.labels("unsupported_realtime").inc()
         REQUESTS.labels("chat", "bounded_refusal").inc()
+        record_outcome(
+            status="bounded_refusal",
+            duration_ms=round((time.perf_counter() - started) * 1000),
+            endpoint="chat",
+            request_id=request_id,
+            reason="unsupported_realtime",
+        )
         record_stage(
             request_id,
             name="scope_guardrail",
@@ -287,6 +323,12 @@ async def chat(payload: ChatRequest) -> ChatResponse:
             },
         )
         REQUESTS.labels("chat", "success").inc()
+        record_outcome(
+            status="success",
+            duration_ms=round((time.perf_counter() - started) * 1000),
+            endpoint="chat",
+            request_id=request_id,
+        )
         complete_trace(
             request_id,
             status="success",
@@ -307,6 +349,13 @@ async def chat(payload: ChatRequest) -> ChatResponse:
         )
     except (APIError, PyMongoError) as exc:
         REQUESTS.labels("chat", "dependency_error").inc()
+        record_outcome(
+            status="dependency_error",
+            duration_ms=round((time.perf_counter() - started) * 1000),
+            endpoint="chat",
+            request_id=request_id,
+            reason=type(exc).__name__,
+        )
         record_stage(
             request_id,
             name="dependency_error",
@@ -352,6 +401,8 @@ async def monitoring_summary() -> dict:
         "provider": "Prometheus + Grafana OSS",
         "metrics_endpoint": "/metrics",
         "request_trace_endpoint": "/api/monitoring/requests/{request_id}",
+        "metric_series_endpoint": "/api/monitoring/series",
+        "event_feed_endpoint": "/api/monitoring/events",
         "trace_schema_version": "1.0",
         "tracked": [
             "request count",
@@ -366,6 +417,8 @@ async def monitoring_summary() -> dict:
         "alerting": alerting_posture(),
         "usage": limits_usage(),
         "retention": retention_posture(),
+        "series": metric_series(),
+        "events": notable_events(),
     }
 
 
@@ -380,6 +433,18 @@ async def request_trace(request_id: str) -> JSONResponse:
     if not trace:
         raise HTTPException(status_code=404, detail="Request trace was not found or expired.")
     return JSONResponse(trace, headers={"Cache-Control": "no-store"})
+
+
+@app.get("/api/monitoring/series", dependencies=[Depends(require_monitoring_key)])
+async def monitoring_series() -> JSONResponse:
+    """Per-minute buckets, so a monitor sees a trend rather than one cumulative number."""
+    return JSONResponse(metric_series(), headers={"Cache-Control": "no-store"})
+
+
+@app.get("/api/monitoring/events", dependencies=[Depends(require_monitoring_key)])
+async def monitoring_events() -> JSONResponse:
+    """Blocks, refusals, dependency errors and limit rejections. Never prompts or responses."""
+    return JSONResponse(notable_events(), headers={"Cache-Control": "no-store"})
 
 
 @app.get("/api/audit/config", dependencies=[Depends(require_audit_key)])

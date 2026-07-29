@@ -2,6 +2,20 @@ global:
   scrape_interval: 15s
   evaluation_interval: 15s
 
+# The loaded rules are the alerting posture this service reports on
+# /api/monitoring/summary. Adding or removing a file here changes what an
+# assessment observes, because the posture is read from the file, not asserted.
+rule_files:
+  - /etc/prometheus/alert_rules.yml
+
+# No Alertmanager receiver is configured, so a firing rule stays inside
+# Prometheus and reaches no human. Reported as an open gap rather than left for
+# an assessor to discover.
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#         - targets: ["alertmanager:9093"]
+
 scrape_configs:
   - job_name: governai-chatbot
     static_configs:

@@ -1,0 +1,99 @@
+# Prometheus alerting rules for the declared service objectives.
+#
+# These are the real artefact: Prometheus loads this file (see rule_files in
+# prometheus.yml) and /api/monitoring/summary reports what is in it, rather than
+# asserting that alerting exists. If a rule is removed here, the monitoring
+# posture the service reports changes with it.
+#
+# Thresholds are kept in step with app/config.py — slo_p95_latency_ms (3000) and
+# slo_error_rate (0.02). A rule that disagrees with the objective it guards is
+# worse than no rule, so both numbers appear in the annotations for review.
+#
+# A rule firing still reaches nobody until an Alertmanager receiver exists. That
+# gap is reported, not papered over.
+
+groups:
+  - name: chatbot-service-levels
+    interval: 30s
+    rules:
+      - alert: ChatbotLatencyObjectiveBreached
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum by (le) (rate(chatbot_request_duration_seconds_bucket[10m]))
+          ) > 3
+        for: 5m
+        labels:
+          severity: high
+          objective: p95_latency_ms
+          pillar: trust
+        annotations:
+          summary: 95th-percentile chat latency is above the 3000 ms objective
+          description: >-
+            The p95 end-to-end latency over the last 10 minutes exceeds the declared
+            objective of 3000 ms. Users are waiting longer than the service promises.
+          runbook: Check OpenAI upstream latency, then MongoDB Atlas vector query time.
+
+      - alert: ChatbotErrorRateObjectiveBreached
+        expr: |
+          sum(rate(chatbot_requests_total{status="dependency_error"}[10m]))
+          /
+          clamp_min(sum(rate(chatbot_requests_total[10m])), 0.001)
+          > 0.02
+        for: 5m
+        labels:
+          severity: critical
+          objective: error_rate
+          pillar: trust
+        annotations:
+          summary: Dependency-error rate is above the 2% objective
+          description: >-
+            More than 2% of chat requests over the last 10 minutes ended in a
+            dependency error. Retrieval or generation is failing, not refusing.
+          runbook: Check the OpenAI and MongoDB dependency status on /health first.
+
+  - name: chatbot-guardrails
+    interval: 30s
+    rules:
+      - alert: ChatbotGuardrailBlockSpike
+        expr: sum(rate(chatbot_guardrail_blocks_total[15m])) > 0.2
+        for: 10m
+        labels:
+          severity: medium
+          pillar: security
+        annotations:
+          summary: Guardrail blocks are sustained above 12 per minute
+          description: >-
+            A sustained block rate is either an attack in progress or a guardrail
+            that has become too strict. Both need a human to look.
+          runbook: Read the block reasons on /api/monitoring/events before changing a rule.
+
+      - alert: ChatbotLimitRejectionSpike
+        expr: sum(rate(chatbot_limit_rejections_total[15m])) > 0.2
+        for: 10m
+        labels:
+          severity: medium
+          pillar: security
+        annotations:
+          summary: Configured request limits are rejecting sustained traffic
+          description: >-
+            Requests are being refused by a configured ceiling. Either the ceiling is
+            too low for real use or something is hammering the endpoint.
+          runbook: Compare with the usage figures on /api/monitoring/summary.
+
+  - name: chatbot-availability
+    interval: 30s
+    rules:
+      - alert: ChatbotScrapeTargetDown
+        expr: up{job="governai-chatbot"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          pillar: governance
+        annotations:
+          summary: The chatbot is not being scraped
+          description: >-
+            Prometheus cannot reach /metrics. Either the service is down or the
+            observability path to it is broken — and while this fires, every other
+            rule in this file is blind.
+          runbook: Check the container, then the network policy between the two.

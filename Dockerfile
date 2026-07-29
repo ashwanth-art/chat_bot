@@ -13,6 +13,9 @@ COPY sample_data ./sample_data
 # Read at request time by /api/evidence/manifest. Without it the service serves
 # only its measured procedures and an assessment reports the rest not_assessed.
 COPY evidence ./evidence
+# Read at request time by /api/monitoring/summary, which reports the alert rules
+# Prometheus loads. Absent, the service truthfully reports no thresholds at all.
+COPY monitoring ./monitoring
 RUN chown -R app:app /srv/app
 
 USER app

@@ -2,6 +2,7 @@ import json
 from datetime import date, timedelta
 
 from app import evidence
+from app.config import get_settings
 from app.evidence import (
     agency_posture,
     alerting_posture,
@@ -140,10 +141,51 @@ def test_deployment_posture_reports_loopback_only_origins():
     assert posture["credentialed_cors"] is False
 
 
-def test_alerting_posture_does_not_claim_coverage_it_lacks():
+def test_alerting_posture_is_read_from_the_rule_file_prometheus_loads():
     posture = alerting_posture()
-    assert posture["rules_configured"] == 0
+    assert posture["rules_configured"] == len(posture["rules"])
+    assert posture["rules_configured"] > 0, "monitoring/alert_rules.yml should be loaded"
+    assert posture["provisioned_via"] == "prometheus rule_files"
+    # Both declared objectives must have a rule, or the objective is decoration.
+    assert {"p95_latency_ms", "error_rate"} <= set(posture["objectives_with_a_rule"])
+    for rule in posture["rules"]:
+        assert rule["name"]
+        assert rule["expression"], "a rule with no expression evaluates nothing"
+        assert rule["severity"] != "unspecified"
+
+
+def test_alerting_posture_does_not_claim_a_channel_it_lacks():
+    """Thresholds existing is not the same as a breach reaching a human, and the two
+    are reported separately so a rule count cannot stand in for routing."""
+    posture = alerting_posture()
     assert posture["notification_channels"] == []
+    assert "reaches no human" in posture["detail"]
+
+
+def test_alerting_posture_reports_zero_when_the_rule_file_is_unreadable(monkeypatch, tmp_path):
+    """A missing or malformed file must read as no thresholds at all. Falling back to
+    the last known good answer would report protection that is not running."""
+    monkeypatch.setattr(evidence, "ALERT_RULES", tmp_path / "absent.yml")
+    assert evidence.alerting_posture()["rules_configured"] == 0
+
+    broken = tmp_path / "broken.yml"
+    broken.write_text("groups: [ unclosed", encoding="utf-8")
+    monkeypatch.setattr(evidence, "ALERT_RULES", broken)
+    assert evidence.alerting_posture()["rules_configured"] == 0
+
+
+def test_alert_rule_thresholds_agree_with_the_declared_objectives():
+    """A rule that fires at a different number than the objective it guards is worse
+    than no rule: it makes a breach invisible while looking like coverage."""
+    settings = get_settings()
+    rules = {rule["objective"]: rule["expression"] for rule in alerting_posture()["rules"]}
+
+    def threshold(expression: str) -> float:
+        return float(expression.rsplit(">", 1)[1].strip())
+
+    # The latency rule works in seconds; the objective is declared in milliseconds.
+    assert threshold(rules["p95_latency_ms"]) == settings.slo_p95_latency_ms / 1000
+    assert threshold(rules["error_rate"]) == settings.slo_error_rate
 
 
 def test_agency_posture_reports_no_tool_surface():
@@ -176,6 +218,12 @@ def test_the_container_image_carries_every_directory_evidence_reads_from():
     }
     required = {
         path.relative_to(evidence.REPO_ROOT).parts[0]
-        for path in (evidence.CORPUS_DIR, evidence.ATTESTATIONS, evidence.BUILD_EVIDENCE)
+        for path in (
+            evidence.CORPUS_DIR,
+            evidence.ATTESTATIONS,
+            evidence.BUILD_EVIDENCE,
+            evidence.ALERT_RULES,
+            evidence.PROMETHEUS_CONFIG,
+        )
     }
     assert required <= copied, f"not copied into the image: {sorted(required - copied)}"

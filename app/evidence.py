@@ -24,6 +24,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
+import yaml
 from prometheus_client import REGISTRY
 
 from app.config import get_settings
@@ -34,6 +35,8 @@ CORPUS_DIR = REPO_ROOT / "sample_data" / "aci"
 CORPUS_MANIFEST = CORPUS_DIR / "manifest.json"
 ATTESTATIONS = REPO_ROOT / "evidence" / "attestations.json"
 BUILD_EVIDENCE = REPO_ROOT / "evidence" / "build.json"
+ALERT_RULES = REPO_ROOT / "monitoring" / "alert_rules.yml"
+PROMETHEUS_CONFIG = REPO_ROOT / "monitoring" / "prometheus.yml"
 
 OVERDUE_FAIL_DAYS = 90
 
@@ -331,19 +334,98 @@ def observed_service_levels() -> dict:
     }
 
 
+def _repo_relative(path: Path) -> str:
+    """Repo-relative when it can be, absolute otherwise. Never raises: this value is
+    only a label, and a label must not be able to fail a monitoring read."""
+    try:
+        return str(path.relative_to(REPO_ROOT))
+    except ValueError:
+        return str(path)
+
+
+def _alert_rules() -> list[dict[str, Any]]:
+    """Read the thresholds Prometheus actually loads.
+
+    Parsed from the rule file rather than asserted in code, so deleting a rule changes
+    what this service reports about itself. A malformed or missing file reports zero
+    rules — never a comforting default.
+    """
+    if not ALERT_RULES.exists():
+        return []
+    try:
+        loaded = yaml.safe_load(ALERT_RULES.read_text(encoding="utf-8")) or {}
+    except yaml.YAMLError:
+        return []
+    rules: list[dict[str, Any]] = []
+    for group in loaded.get("groups") or []:
+        for rule in group.get("rules") or []:
+            name = rule.get("alert")
+            if not name:
+                continue
+            labels = rule.get("labels") or {}
+            rules.append(
+                {
+                    "name": name,
+                    "group": group.get("name", "unnamed"),
+                    "severity": labels.get("severity", "unspecified"),
+                    "objective": labels.get("objective"),
+                    "pillar": labels.get("pillar"),
+                    "for": rule.get("for"),
+                    "expression": " ".join(str(rule.get("expr", "")).split()),
+                }
+            )
+    return rules
+
+
+def _notification_channels() -> list[str]:
+    """An alertmanagers block that is present and uncommented, or nothing."""
+    if not PROMETHEUS_CONFIG.exists():
+        return []
+    try:
+        loaded = yaml.safe_load(PROMETHEUS_CONFIG.read_text(encoding="utf-8")) or {}
+    except yaml.YAMLError:
+        return []
+    channels = []
+    for entry in (loaded.get("alerting") or {}).get("alertmanagers") or []:
+        for static in entry.get("static_configs") or []:
+            channels.extend(str(target) for target in static.get("targets") or [])
+    return channels
+
+
 def alerting_posture() -> dict:
-    """Whether anything is actually watching. Nothing is provisioned yet."""
+    """Whether anything is actually watching, read from the files that decide it."""
+    rules = _alert_rules()
+    channels = _notification_channels()
+    if not rules:
+        detail = (
+            "Prometheus scrapes /metrics and a Grafana datasource is provisioned in the "
+            "compose stack, but no alert rule or threshold is loaded, so no breach is "
+            "even detected."
+        )
+    elif not channels:
+        detail = (
+            f"{len(rules)} alert rules are loaded from monitoring/alert_rules.yml and "
+            "cover the declared latency and error-rate objectives, guardrail and limit "
+            "spikes, and scrape loss. No Alertmanager receiver is configured, so a firing "
+            "rule stays inside Prometheus and still reaches no human."
+        )
+    else:
+        detail = (
+            f"{len(rules)} alert rules are loaded and route to "
+            f"{len(channels)} notification channel(s)."
+        )
     return {
-        "rules_configured": 0,
-        "provisioned_via": None,
-        "notification_channels": [],
+        "rules_configured": len(rules),
+        "rules": rules,
+        "rule_source": _repo_relative(ALERT_RULES),
+        "provisioned_via": "prometheus rule_files" if rules else None,
+        "notification_channels": channels,
+        "objectives_with_a_rule": sorted(
+            {str(rule["objective"]) for rule in rules if rule.get("objective")}
+        ),
         "dashboards_provisioned": 0,
         "datasource_provisioned": "prometheus",
-        "detail": (
-            "Prometheus scrapes /metrics and a Grafana datasource is provisioned in the "
-            "compose stack, but no alert rule, threshold or notification channel exists, "
-            "so no breach reaches a human."
-        ),
+        "detail": detail,
     }
 
 

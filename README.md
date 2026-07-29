@@ -13,7 +13,7 @@ credentials remain in the backend.
 | Embeddings | OpenAI `text-embedding-3-small` |
 | Vector database | MongoDB Atlas Vector Search |
 | Knowledge | One combined ACI services-and-industries corpus |
-| Monitoring | Prometheus-compatible `/metrics` endpoint |
+| Monitoring | Prometheus metrics plus protected request-correlated RAG traces |
 
 At startup, the backend combines the six source summaries in `sample_data/aci` into one
 logical document named `aci_services_and_industries.md`. If its content or embedding
@@ -40,6 +40,20 @@ Authorization: Bearer <CHATBOT_API_KEY>
 
 The browser uses `/v1/web-chat`, fixes the tenant to `aci-infotech`, and never exposes
 the backend chatbot API key.
+
+## Request-correlated assessment traces
+
+Tier 2 assessments can retrieve a sanitized trace after each chat request:
+
+```text
+GET /api/monitoring/requests/{request_id}
+Authorization: Bearer <MONITORING_API_KEY>
+```
+
+The trace reports input and scope guardrails, tenant-filtered retrieval counts and scores,
+generation latency, and output-validation decisions. It does not contain raw prompts,
+retrieved text, generated answers, tenant identifiers, or credentials. Traces are
+memory-only, expire after one hour, and are bounded to the most recent 500 requests.
 
 ## Local Docker
 

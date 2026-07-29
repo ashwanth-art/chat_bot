@@ -25,11 +25,16 @@ hallucination, and groundedness probes. The response includes retrieval sources 
 | Monitoring provider | `Prometheus + Grafana OSS` |
 | Monitoring API key | Value of `MONITORING_API_KEY` |
 | Monitoring audit endpoint | `https://rag.example.com/api/monitoring/summary` |
+| Correlated request trace | `https://rag.example.com/api/monitoring/requests/{request_id}` |
 | CI/CD pipeline URL | URL of `.github/workflows/ci.yml` in your repository |
 
 Both audit endpoints are read-only and require `Authorization: Bearer <key>`. Prometheus
 scrapes `/metrics` only on the private observability network. Grafana is available on port
 3000. Rotate the example Grafana admin password before deployment.
+
+The monitoring summary advertises the trace endpoint. GovernAI uses the `request_id`
+returned by each probe to retrieve sanitized stage timing and decisions. Raw prompts,
+retrieved chunks, answers, tenant IDs, and secrets are intentionally excluded.
 
 ## Tier 3 — white box
 

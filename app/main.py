@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import re
 import time
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -21,7 +22,13 @@ from app.security import (
     require_chatbot_key,
     require_monitoring_key,
 )
-from app.text_utils import contains_prompt_injection, redact_pii
+from app.telemetry import complete_trace, get_trace, record_stage, start_trace
+from app.text_utils import (
+    contains_prompt_injection,
+    contains_sensitive_extraction_request,
+    contains_unsupported_realtime_request,
+    redact_pii,
+)
 
 settings = get_settings()
 logging.basicConfig(
@@ -36,6 +43,7 @@ GUARDRAIL_BLOCKS = Counter(
     "chatbot_guardrail_blocks_total", "Requests blocked by guardrails", ["reason"]
 )
 RETRIEVAL_COUNT = Histogram("chatbot_retrieved_chunks", "Retrieved chunks per chat")
+TRACE_ID_PATTERN = re.compile(r"^[a-zA-Z0-9_-]{8,128}$")
 
 
 @asynccontextmanager
@@ -98,25 +106,141 @@ async def chat(payload: ChatRequest) -> ChatResponse:
         (message.content for message in reversed(payload.messages) if message.role == "user"),
         "",
     )
+    start_trace(request_id, payload.tenant_id)
+    input_guardrail_started = time.perf_counter()
     if contains_prompt_injection(question):
         GUARDRAIL_BLOCKS.labels("prompt_injection").inc()
         REQUESTS.labels("chat", "blocked").inc()
-        raise HTTPException(
-            status_code=400,
-            detail="The request was blocked by the prompt-injection guardrail.",
+        record_stage(
+            request_id,
+            name="input_guardrail",
+            status="blocked",
+            summary="Prompt-injection policy blocked the request before retrieval.",
+            duration_ms=round((time.perf_counter() - input_guardrail_started) * 1000),
+            metrics={"retrieval_started": False},
         )
+        complete_trace(
+            request_id,
+            status="blocked",
+            duration_ms=round((time.perf_counter() - started) * 1000),
+        )
+        return JSONResponse(
+            status_code=400,
+            content={
+                "detail": "The request was blocked by the prompt-injection guardrail.",
+                "request_id": request_id,
+            },
+        )
+    if contains_sensitive_extraction_request(question):
+        GUARDRAIL_BLOCKS.labels("sensitive_extraction").inc()
+        REQUESTS.labels("chat", "blocked").inc()
+        record_stage(
+            request_id,
+            name="input_guardrail",
+            status="blocked",
+            summary="Sensitive-credential extraction policy blocked the request before retrieval.",
+            duration_ms=round((time.perf_counter() - input_guardrail_started) * 1000),
+            metrics={"retrieval_started": False},
+        )
+        complete_trace(
+            request_id,
+            status="blocked",
+            duration_ms=round((time.perf_counter() - started) * 1000),
+        )
+        return JSONResponse(
+            status_code=400,
+            content={
+                "detail": "The request was blocked by the sensitive-information guardrail.",
+                "request_id": request_id,
+            },
+        )
+    if contains_unsupported_realtime_request(question):
+        GUARDRAIL_BLOCKS.labels("unsupported_realtime").inc()
+        REQUESTS.labels("chat", "bounded_refusal").inc()
+        record_stage(
+            request_id,
+            name="scope_guardrail",
+            status="blocked",
+            summary=(
+                "The domain boundary refused an unsupported real-time request before retrieval."
+            ),
+            duration_ms=round((time.perf_counter() - input_guardrail_started) * 1000),
+            metrics={"retrieval_started": False, "model_called": False},
+        )
+        complete_trace(
+            request_id,
+            status="blocked",
+            duration_ms=round((time.perf_counter() - started) * 1000),
+        )
+        return ChatResponse(
+            answer="Current weather is not available in the approved knowledge base.",
+            sources=[],
+            request_id=request_id,
+            grounded=False,
+        )
+    record_stage(
+        request_id,
+        name="input_guardrail",
+        status="pass",
+        summary="Input policy checks completed without logging prompt content.",
+        duration_ms=round((time.perf_counter() - input_guardrail_started) * 1000),
+    )
     try:
+        retrieval_started = time.perf_counter()
         chunks = retrieve(question, payload.tenant_id)
         RETRIEVAL_COUNT.observe(len(chunks))
-        answer = redact_pii(
-            await generate_answer(
-                question,
-                chunks,
-                payload.tenant_id,
-                payload.max_tokens,
-            )
+        record_stage(
+            request_id,
+            name="retrieval",
+            status="pass" if chunks else "partial",
+            summary="Tenant-filtered vector retrieval completed.",
+            duration_ms=round((time.perf_counter() - retrieval_started) * 1000),
+            metrics={
+                "chunks": len(chunks),
+                "documents": len({item["document"] for item in chunks}),
+                "top_score": round(max((item["score"] for item in chunks), default=0), 4),
+                "tenant_filtering": True,
+            },
+        )
+        generation_started = time.perf_counter()
+        raw_answer = await generate_answer(
+            question,
+            chunks,
+            payload.tenant_id,
+            payload.max_tokens,
+        )
+        record_stage(
+            request_id,
+            name="generation",
+            status="pass",
+            summary="The model generated an answer from the assembled retrieved context.",
+            duration_ms=round((time.perf_counter() - generation_started) * 1000),
+            metrics={
+                "model": settings.openai_model,
+                "max_output_tokens": payload.max_tokens,
+                "grounded_context": bool(chunks),
+            },
+        )
+        validation_started = time.perf_counter()
+        answer = redact_pii(raw_answer)
+        record_stage(
+            request_id,
+            name="output_validation",
+            status="pass",
+            summary="Output privacy filtering and grounded-response metadata completed.",
+            duration_ms=round((time.perf_counter() - validation_started) * 1000),
+            metrics={
+                "pii_redacted": answer != raw_answer,
+                "grounded": bool(chunks),
+                "sources_returned": len(chunks),
+            },
         )
         REQUESTS.labels("chat", "success").inc()
+        complete_trace(
+            request_id,
+            status="success",
+            duration_ms=round((time.perf_counter() - started) * 1000),
+        )
         return ChatResponse(
             answer=answer,
             sources=[
@@ -132,14 +256,31 @@ async def chat(payload: ChatRequest) -> ChatResponse:
         )
     except (APIError, PyMongoError) as exc:
         REQUESTS.labels("chat", "dependency_error").inc()
+        record_stage(
+            request_id,
+            name="dependency_error",
+            status="error",
+            summary="A model or database dependency failed; no dependency details were exposed.",
+            duration_ms=round((time.perf_counter() - started) * 1000),
+            metrics={"error_type": type(exc).__name__},
+        )
+        complete_trace(
+            request_id,
+            status="error",
+            duration_ms=round((time.perf_counter() - started) * 1000),
+        )
         logger.error(
             "generation_failed request_id=%s error_type=%s",
             request_id,
             type(exc).__name__,
         )
-        raise HTTPException(
-            status_code=503, detail="The AI or database service is unavailable."
-        ) from exc
+        return JSONResponse(
+            status_code=503,
+            content={
+                "detail": "The AI or database service is unavailable.",
+                "request_id": request_id,
+            },
+        )
     finally:
         LATENCY.labels("chat").observe(time.perf_counter() - started)
 
@@ -159,9 +300,30 @@ async def monitoring_summary() -> dict:
     return {
         "provider": "Prometheus + Grafana OSS",
         "metrics_endpoint": "/metrics",
-        "tracked": ["request count", "latency", "guardrail blocks", "retrieval count"],
+        "request_trace_endpoint": "/api/monitoring/requests/{request_id}",
+        "trace_schema_version": "1.0",
+        "tracked": [
+            "request count",
+            "latency",
+            "guardrail blocks",
+            "retrieval count",
+            "request-correlated RAG stages",
+        ],
         "log_policy": "Prompts, responses, and API keys are not written to application logs.",
     }
+
+
+@app.get(
+    "/api/monitoring/requests/{request_id}",
+    dependencies=[Depends(require_monitoring_key)],
+)
+async def request_trace(request_id: str) -> JSONResponse:
+    if not TRACE_ID_PATTERN.fullmatch(request_id):
+        raise HTTPException(status_code=400, detail="Invalid request trace identifier.")
+    trace = get_trace(request_id)
+    if not trace:
+        raise HTTPException(status_code=404, detail="Request trace was not found or expired.")
+    return JSONResponse(trace, headers={"Cache-Control": "no-store"})
 
 
 @app.get("/api/audit/config", dependencies=[Depends(require_audit_key)])

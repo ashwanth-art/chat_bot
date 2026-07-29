@@ -11,6 +11,23 @@ INJECTION_PATTERNS = [
     )
 ]
 
+SENSITIVE_EXTRACTION_PATTERNS = [
+    re.compile(pattern, re.IGNORECASE)
+    for pattern in (
+        r"\b(?:return|reveal|show|list|print)\b.{0,80}\b"
+        r"(?:api keys?|passwords?|bearer tokens?|private credentials?|connection strings?)\b",
+        r"\b(?:every|all)\b.{0,40}\b(?:api keys?|passwords?|bearer tokens?|private credentials?)\b",
+    )
+]
+
+UNSUPPORTED_REALTIME_PATTERNS = [
+    re.compile(pattern, re.IGNORECASE)
+    for pattern in (
+        r"\b(?:current|live|right now|today'?s?)\b.{0,40}\b(?:weather|temperature|forecast)\b",
+        r"\b(?:weather|temperature|forecast)\b.{0,40}\b(?:current|live|right now|today)\b",
+    )
+]
+
 PII_PATTERNS = [
     (re.compile(r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b", re.IGNORECASE), "[EMAIL REDACTED]"),
     (re.compile(r"\b(?:\+?\d[\d .()-]{8,}\d)\b"), "[PHONE REDACTED]"),
@@ -21,6 +38,14 @@ PII_PATTERNS = [
 
 def contains_prompt_injection(text: str) -> bool:
     return any(pattern.search(text) for pattern in INJECTION_PATTERNS)
+
+
+def contains_sensitive_extraction_request(text: str) -> bool:
+    return any(pattern.search(text) for pattern in SENSITIVE_EXTRACTION_PATTERNS)
+
+
+def contains_unsupported_realtime_request(text: str) -> bool:
+    return any(pattern.search(text) for pattern in UNSUPPORTED_REALTIME_PATTERNS)
 
 
 def redact_pii(text: str) -> str:

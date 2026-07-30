@@ -32,6 +32,13 @@ def test_bundled_aci_corpus_combines_all_sources():
 def test_bundled_aci_documents_preserve_source_names():
     names = [name for name, _ in bundled_aci_documents()]
     assert len(names) == 13
+    assert {
+        "07_case_study_hospitality_data_intelligence.md",
+        "08_case_study_sap_finance_transformation.md",
+        "09_case_study_retail_loyalty_intelligence.md",
+        "10_case_study_pds_data_platform.md",
+        "11_case_study_shift_left_medical_device_security.md",
+    }.issubset(names)
     assert "12_service_catalog.md" in names
     assert "13_industry_catalog.md" in names
     assert len(names) == len(set(names))

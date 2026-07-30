@@ -4,9 +4,7 @@ const promptInput = $("prompt");
 const sendButton = $("sendButton");
 const conversation = [];
 
-const greeting =
-  "Hello! I'm the ACI Chatbot Assistant. I can help you with information about ACI Infotech's " +
-  "services, industries, technology capabilities, and case studies.";
+const greeting = "Hello! I'm the ACI Chatbot Assistant. I can help you...";
 
 function appendAnswerText(container, text) {
   const blocks = text.split(/\n{2,}/).filter(Boolean);

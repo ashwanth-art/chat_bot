@@ -12,8 +12,7 @@ from app.text_utils import chunk_text
 logger = logging.getLogger(__name__)
 
 OUT_OF_SCOPE_MESSAGE = (
-    "I'm here to help with ACI Infotech. I can answer questions about ACI's services, "
-    "industries, technologies, and case studies. Please ask me something about ACI."
+    "I'm here to help with ACI Infotech. Please ask me a question about ACI."
 )
 
 SYSTEM_PROMPT = f"""You are the ACI Chatbot Assistant.

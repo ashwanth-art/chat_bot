@@ -1,7 +1,6 @@
 const $ = (id) => document.getElementById(id);
 const messages = $("messages");
 const promptInput = $("prompt");
-const starterPanel = $("starterPanel");
 const sendButton = $("sendButton");
 const conversation = [];
 
@@ -81,7 +80,6 @@ function resetChat() {
   conversation.length = 0;
   messages.replaceChildren();
   addMessage("assistant welcome", greeting);
-  starterPanel.hidden = false;
   promptInput.value = "";
   resizeComposer();
   promptInput.focus();
@@ -91,7 +89,6 @@ async function askQuestion(text) {
   const prompt = text.trim();
   if (!prompt || sendButton.disabled) return;
 
-  starterPanel.hidden = true;
   addMessage("user", prompt);
   conversation.push({role: "user", content: prompt});
   promptInput.value = "";
@@ -148,10 +145,6 @@ async function updateHealth() {
 $("chatForm").addEventListener("submit", (event) => {
   event.preventDefault();
   askQuestion(promptInput.value);
-});
-
-document.querySelectorAll("#suggestions button").forEach((button) => {
-  button.addEventListener("click", () => askQuestion(button.textContent));
 });
 
 promptInput.addEventListener("input", resizeComposer);

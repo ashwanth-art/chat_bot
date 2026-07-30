@@ -74,7 +74,6 @@ button { -webkit-tap-highlight-color: transparent; }
 
 .brand-copy { display: grid; gap: 3px; }
 .brand-copy strong { font-size: 17px; letter-spacing: -.01em; }
-.brand-copy span { color: var(--muted); font-size: 12px; }
 
 .live-status {
   margin-left: auto;
@@ -292,7 +291,7 @@ form button b { color: var(--lime); font-size: 18px; }
 @media (max-width: 620px) {
   .app-shell { border: 0; }
   .topbar { padding: 13px 14px; }
-  .brand-copy span, .live-status span, .new-chat { font-size: 0; }
+  .live-status span, .new-chat { font-size: 0; }
   .live-status { padding: 8px; }
   .new-chat { width: 38px; padding: 0; }
   .new-chat span { margin: auto; font-size: 20px; }

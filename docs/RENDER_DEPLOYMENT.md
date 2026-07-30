@@ -25,10 +25,11 @@ recommended for reliable assessment sessions.
 
 ## 2. Confirm the backend knowledge seed
 
-The backend automatically combines the six ACI source summaries into one logical
-document and embeds it with OpenAI `text-embedding-3-small`. No UI upload or deployment
-command is required. On the first deployment, allow a few minutes for Atlas to finish
-building the `openai_vector_index` search index.
+The backend automatically embeds the 13 numbered ACI sources in `sample_data/aci` with
+OpenAI `text-embedding-3-small`. Each service, industry, or case-study source is stored
+separately so the API returns meaningful source names. No UI upload or deployment command
+is required. On the first deployment, allow a few minutes for Atlas to finish building
+the `openai_vector_index` search index.
 
 ## 3. Verify the assessment endpoints
 

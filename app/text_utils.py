@@ -35,6 +35,49 @@ PII_PATTERNS = [
     (re.compile(r"\b(?:\d[ -]*?){13,19}\b"), "[CARD REDACTED]"),
 ]
 
+OUT_OF_SCOPE_PATTERNS = [
+    re.compile(pattern, re.IGNORECASE)
+    for pattern in (
+        r"\b(weather|temperature|forecast)\b",
+        r"\b(cricket|football|soccer|basketball|score|standings)\b",
+        r"\b(recipe|cook|ingredients)\b",
+        r"\b(write|debug|fix|generate)\s+(my\s+)?(code|program|essay|homework)\b",
+        r"\b(president|prime minister|election|politics)\b",
+        r"\b(stock price|crypto|bitcoin|exchange rate)\b",
+        r"\b(tell me a joke|horoscope)\b",
+    )
+]
+
+ACI_SCOPE_MARKERS = (
+    "aci",
+    "service",
+    "industry",
+    "case study",
+    "data engineering",
+    "artificial intelligence",
+    "machine learning",
+    "cloud modernization",
+    "cybersecurity",
+    "cyber security",
+    "managed operations",
+    "quality engineering",
+    "martech",
+    "customer data platform",
+    "financial services",
+    "healthcare",
+    "retail",
+    "hospitality",
+    "manufacturing",
+    "energy",
+    "oil and gas",
+    "transportation",
+    "sodexo",
+    "nestle",
+    "racetrac",
+    "pds",
+    "medical device",
+)
+
 
 def contains_prompt_injection(text: str) -> bool:
     return any(pattern.search(text) for pattern in INJECTION_PATTERNS)
@@ -46,6 +89,14 @@ def contains_sensitive_extraction_request(text: str) -> bool:
 
 def contains_unsupported_realtime_request(text: str) -> bool:
     return any(pattern.search(text) for pattern in UNSUPPORTED_REALTIME_PATTERNS)
+
+
+def is_clearly_out_of_scope(text: str) -> bool:
+    normalized = " ".join(text.lower().split())
+    mentions_aci_scope = any(marker in normalized for marker in ACI_SCOPE_MARKERS)
+    return not mentions_aci_scope and any(
+        pattern.search(normalized) for pattern in OUT_OF_SCOPE_PATTERNS
+    )
 
 
 def redact_pii(text: str) -> str:

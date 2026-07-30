@@ -12,13 +12,19 @@ credentials remain in the backend.
 | Answer generation | OpenAI Responses API |
 | Embeddings | OpenAI `text-embedding-3-small` |
 | Vector database | MongoDB Atlas Vector Search |
-| Knowledge | One combined ACI services-and-industries corpus |
+| Knowledge | 13 source-attributed ACI service, industry, and case-study documents |
 | Monitoring | Prometheus metrics plus protected request-correlated RAG traces |
 
-At startup, the backend combines the six source summaries in `sample_data/aci` into one
-logical document named `aci_services_and_industries.md`. If its content or embedding
-model changes, the backend automatically creates fresh embeddings and stores the chunks
-in MongoDB Atlas. Users cannot upload or replace documents through the UI.
+At startup, the backend embeds each numbered source in `sample_data/aci` as an individual
+document. This preserves meaningful source names in retrieval results and makes updates
+idempotent: only changed sources receive fresh embeddings. The corpus includes ACI's
+service and industry catalogs plus five supplied case studies. Original case-study
+documents are retained in `docs/case_studies`; the retrieval-ready summaries record
+source URLs, attribution, client-identity caveats, and version differences. Users cannot
+upload or replace documents through the UI.
+
+The assistant is deliberately scoped to ACI Infotech. Unsupported general-knowledge
+requests receive a polite ACI-only explanation rather than a guessed answer.
 
 ## Render deployment
 

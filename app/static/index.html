@@ -3,45 +3,70 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="description" content="Chat with ACI Infotech services and industry knowledge">
+  <meta name="description" content="Chat with ACI Infotech services, industries, technologies, and case studies">
+  <meta name="theme-color" content="#073f35">
   <title>ACI Knowledge Assistant</title>
   <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
   <main class="app-shell">
     <header class="topbar">
-      <div class="brand-mark">A</div>
+      <div class="brand-mark" aria-hidden="true">A</div>
       <div class="brand-copy">
         <strong>ACI Knowledge Assistant</strong>
-        <span>Services and industries</span>
+        <span>Services, industries and client outcomes</span>
       </div>
-      <div class="live-status"><i></i> Knowledge base online</div>
+      <div id="liveStatus" class="live-status checking" role="status">
+        <i></i><span>Checking knowledge base</span>
+      </div>
+      <button id="newChat" class="new-chat" type="button" title="Start a new conversation">
+        <span aria-hidden="true">+</span> New chat
+      </button>
     </header>
 
     <section class="conversation">
-      <div id="messages" class="messages" aria-live="polite">
-        <article class="assistant">
-          <div class="avatar">A</div>
-          <div class="message-copy">
-            <p>Hello! Ask me about ACI Infotech's services, AI and data capabilities, cybersecurity, healthcare, or financial-services expertise.</p>
+      <div id="messages" class="messages" aria-live="polite"></div>
+
+      <section id="starterPanel" class="starter-panel" aria-label="Suggested ACI questions">
+        <p class="eyebrow">EXPLORE ACI INFOTECH</p>
+        <h1>What would you like to know?</h1>
+        <p class="starter-copy">
+          Ask about ACI's enterprise services, the industries it supports, its technology
+          platforms, or outcomes from the approved case studies.
+        </p>
+        <div id="suggestions" class="suggestions">
+          <button type="button" data-icon="AI">What AI and ML services does ACI provide?</button>
+          <button type="button" data-icon="DE">How does ACI build governed data platforms?</button>
+          <button type="button" data-icon="CS">Explain ACI's medical-device cybersecurity case study.</button>
+          <button type="button" data-icon="RT">What results did ACI deliver for retail loyalty?</button>
+          <button type="button" data-icon="FS">How did ACI modernize finance reporting with SAP?</button>
+          <button type="button" data-icon="IN">Which industries does ACI serve?</button>
+        </div>
+      </section>
+
+      <div class="composer-wrap">
+        <form id="chatForm">
+          <textarea
+            id="prompt"
+            required
+            maxlength="12000"
+            rows="1"
+            aria-label="Question for the ACI Knowledge Assistant"
+            placeholder="Ask about ACI services, industries, technologies or case studies..."
+          ></textarea>
+          <div class="composer-actions">
+            <span id="characterCount" aria-hidden="true">0 / 12000</span>
+            <button id="sendButton" type="submit" aria-label="Send message">
+              <span>Send</span>
+              <b aria-hidden="true">→</b>
+            </button>
           </div>
-        </article>
+        </form>
+        <p class="notice">
+          Grounded in approved ACI sources. Project figures are ACI-reported outcomes and
+          should be verified before business use.
+        </p>
       </div>
-
-      <div id="suggestions" class="suggestions">
-        <button type="button">What AI services does ACI provide?</button>
-        <button type="button">Tell me about ACI's healthcare capabilities.</button>
-        <button type="button">How does ACI support financial services?</button>
-      </div>
-
-      <form id="chatForm">
-        <textarea id="prompt" required maxlength="12000" rows="1" placeholder="Ask about ACI services and industries..."></textarea>
-        <button type="submit" aria-label="Send message">
-          <span>Send</span>
-          <b aria-hidden="true">→</b>
-        </button>
-      </form>
-      <p class="notice">Answers use the approved ACI knowledge base. Verify important details with ACI.</p>
     </section>
   </main>
   <script src="/static/app.js"></script>

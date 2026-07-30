@@ -1,7 +1,73 @@
 const $ = (id) => document.getElementById(id);
 const messages = $("messages");
 const promptInput = $("prompt");
+const starterPanel = $("starterPanel");
+const sendButton = $("sendButton");
 const conversation = [];
+
+const greeting =
+  "Hello! I'm the ACI Knowledge Assistant. I can help you explore ACI Infotech's services, " +
+  "industries, technology capabilities, and approved case studies.";
+
+function friendlySourceName(filename) {
+  return filename
+    .replace(/^\d{2}_/, "")
+    .replace(/\.md$/i, "")
+    .replaceAll("_", " ")
+    .replace(/\b\w/g, (character) => character.toUpperCase());
+}
+
+function appendAnswerText(container, text) {
+  const blocks = text.split(/\n{2,}/).filter(Boolean);
+  for (const block of blocks) {
+    const paragraph = document.createElement("p");
+    paragraph.textContent = block;
+    container.appendChild(paragraph);
+  }
+}
+
+function addCopyButton(container, text) {
+  const button = document.createElement("button");
+  button.className = "copy-answer";
+  button.type = "button";
+  button.textContent = "Copy";
+  button.addEventListener("click", async () => {
+    await navigator.clipboard.writeText(text);
+    button.textContent = "Copied";
+    window.setTimeout(() => {
+      button.textContent = "Copy";
+    }, 1400);
+  });
+  container.appendChild(button);
+}
+
+function addSources(container, sources) {
+  if (!sources.length) return;
+
+  const uniqueSources = [...new Map(
+    sources.map((source) => [`${source.document}:${source.chunk}`, source])
+  ).values()];
+  const sourceBox = document.createElement("details");
+  sourceBox.className = "sources";
+  const bestScore = Math.round(
+    Math.max(...uniqueSources.map((source) => source.score)) * 100
+  );
+
+  const summary = document.createElement("summary");
+  summary.textContent =
+    `${uniqueSources.length} supporting source${uniqueSources.length === 1 ? "" : "s"} · best match ${bestScore}%`;
+  sourceBox.appendChild(summary);
+
+  const list = document.createElement("div");
+  list.className = "source-list";
+  for (const source of uniqueSources) {
+    const item = document.createElement("span");
+    item.textContent = `${friendlySourceName(source.document)} · chunk ${source.chunk}`;
+    list.appendChild(item);
+  }
+  sourceBox.appendChild(list);
+  container.appendChild(sourceBox);
+}
 
 function addMessage(kind, text, sources = []) {
   const article = document.createElement("article");
@@ -16,35 +82,60 @@ function addMessage(kind, text, sources = []) {
 
   const body = document.createElement("div");
   body.className = "message-copy";
-  const paragraph = document.createElement("p");
-  paragraph.textContent = text;
-  body.appendChild(paragraph);
 
-  if (sources.length) {
-    const sourceBox = document.createElement("div");
-    sourceBox.className = "sources";
-    const bestScore = Math.round(Math.max(...sources.map((source) => source.score)) * 100);
-    sourceBox.textContent = `Grounded in ACI knowledge · ${sources.length} matches · best ${bestScore}%`;
-    body.appendChild(sourceBox);
+  if (kind.includes("thinking")) {
+    const thinking = document.createElement("div");
+    thinking.className = "thinking-label";
+    thinking.innerHTML = "<span></span><span></span><span></span><em>Searching approved ACI sources</em>";
+    body.appendChild(thinking);
+  } else {
+    appendAnswerText(body, text);
+    if (kind.startsWith("assistant") && !kind.includes("error")) {
+      addSources(body, sources);
+      addCopyButton(body, text);
+    }
   }
 
   article.appendChild(body);
   messages.appendChild(article);
-  messages.scrollTop = messages.scrollHeight;
+  messages.scrollTo({top: messages.scrollHeight, behavior: "smooth"});
   return article;
+}
+
+function setBusy(busy) {
+  promptInput.disabled = busy;
+  sendButton.disabled = busy;
+  sendButton.classList.toggle("loading", busy);
+}
+
+function resizeComposer() {
+  promptInput.style.height = "auto";
+  promptInput.style.height = `${Math.min(promptInput.scrollHeight, 170)}px`;
+  $("characterCount").textContent = `${promptInput.value.length} / 12000`;
+}
+
+function resetChat() {
+  conversation.length = 0;
+  messages.replaceChildren();
+  addMessage("assistant welcome", greeting);
+  starterPanel.hidden = false;
+  promptInput.value = "";
+  resizeComposer();
+  promptInput.focus();
 }
 
 async function askQuestion(text) {
   const prompt = text.trim();
-  if (!prompt) return;
+  if (!prompt || sendButton.disabled) return;
 
-  $("suggestions").hidden = true;
+  starterPanel.hidden = true;
   addMessage("user", prompt);
   conversation.push({role: "user", content: prompt});
   promptInput.value = "";
-  promptInput.disabled = true;
+  resizeComposer();
+  setBusy(true);
 
-  const thinking = addMessage("assistant thinking", "Searching the ACI knowledge base...");
+  const thinking = addMessage("assistant thinking", "");
   try {
     const response = await fetch("/v1/web-chat", {
       method: "POST",
@@ -53,20 +144,41 @@ async function askQuestion(text) {
         messages: conversation.slice(-10),
         tenant_id: "aci-infotech",
         temperature: 0.1,
+        max_tokens: 900,
       }),
     });
     const result = await response.json();
     thinking.remove();
-    if (!response.ok) throw new Error(result.detail || "The chatbot is temporarily unavailable.");
+    if (!response.ok) {
+      throw new Error(result.detail || "The chatbot is temporarily unavailable.");
+    }
     addMessage("assistant", result.answer, result.sources);
     conversation.push({role: "assistant", content: result.answer});
   } catch (error) {
     thinking.remove();
-    const item = addMessage("assistant error", error.message);
-    item.classList.add("error");
+    addMessage(
+      "assistant error",
+      `${error.message} Please wait a moment and try again.`
+    );
   } finally {
-    promptInput.disabled = false;
+    setBusy(false);
     promptInput.focus();
+  }
+}
+
+async function updateHealth() {
+  const status = $("liveStatus");
+  try {
+    const response = await fetch("/health", {cache: "no-store"});
+    const result = await response.json();
+    const healthy = response.ok && result.status === "healthy";
+    status.className = `live-status ${healthy ? "online" : "degraded"}`;
+    status.querySelector("span").textContent = healthy
+      ? "Knowledge base online"
+      : "Knowledge base warming up";
+  } catch {
+    status.className = "live-status degraded";
+    status.querySelector("span").textContent = "Connection unavailable";
   }
 }
 
@@ -79,9 +191,16 @@ document.querySelectorAll("#suggestions button").forEach((button) => {
   button.addEventListener("click", () => askQuestion(button.textContent));
 });
 
+promptInput.addEventListener("input", resizeComposer);
 promptInput.addEventListener("keydown", (event) => {
   if (event.key === "Enter" && !event.shiftKey) {
     event.preventDefault();
     $("chatForm").requestSubmit();
   }
 });
+
+$("newChat").addEventListener("click", resetChat);
+
+resetChat();
+updateHealth();
+window.setInterval(updateHealth, 60000);

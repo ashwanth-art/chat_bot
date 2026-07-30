@@ -1,13 +1,13 @@
 {
-  "name": "ACI Infotech public website corpus",
+  "name": "ACI Infotech services, industries, and case-study corpus",
   "tenant_id": "aci-infotech",
-  "retrieved_on": "2026-07-26",
-  "content_policy": "Concise paraphrased summaries of official public pages; not full-page copies.",
+  "retrieved_on": "2026-07-30",
+  "content_policy": "Concise, source-attributed summaries of official public pages and user-supplied ACI case studies; not full-page copies.",
   "integrity": {
     "algorithm": "sha256",
-    "baseline_approved_on": "2026-07-26",
+    "baseline_approved_on": "2026-07-30",
     "baseline_approved_by": "corpus-owner@aciinfotech.com",
-    "note": "Each digest below is the content that was approved at ingestion. A live recomputation that disagrees means the file changed after approval and has to be re-reviewed and re-ingested."
+    "note": "Each digest below is the content approved for ingestion. A live mismatch requires review and re-ingestion."
   },
   "documents": [
     {
@@ -41,8 +41,8 @@
     {
       "file": "05_healthcare.md",
       "source_url": "https://aciinfotech.com/industries/healthcare",
-      "sha256": "b34fe55575d8b51f6cb2ab4f496914816c4f48110168d95ac345734770b378cc",
-      "approved_on": "2026-07-26",
+      "sha256": "5beb86a1e17e2741f867b4b1c4ae8f402b9f91a569771367a96a5be599fdb918",
+      "approved_on": "2026-07-30",
       "classification": "public"
     },
     {
@@ -50,6 +50,60 @@
       "source_url": "https://aciinfotech.com/industries/financial-services",
       "sha256": "88f59af91c235f1acdd303cebcdbe1bca574eb66925b0202f27f09d38a28dc80",
       "approved_on": "2026-07-26",
+      "classification": "public"
+    },
+    {
+      "file": "07_case_study_hospitality_data_intelligence.md",
+      "source_url": "https://aciinfotech.com/case-studies/global-food-facilities-data-intelligence",
+      "source_document": "docs/case_studies/Sodexo-Global Food & Facilities Leader Unified Data Intelligence.docx",
+      "sha256": "46045f8ddca4f599092ed069f5f97f95de23e901c6ce8de772e33e05052417e2",
+      "approved_on": "2026-07-30",
+      "classification": "public"
+    },
+    {
+      "file": "08_case_study_sap_finance_transformation.md",
+      "source_url": "https://aciinfotech.com/case-studies/modernizes-finance-reporting-with-sap-transformation",
+      "source_document": "docs/case_studies/Nestle-Modernizing Finance & Reporting with SAP Transformation.docx",
+      "sha256": "bb1a9d1b2882999403f6e08b0cd5be5b292f1719b436c5397ce3b71474858c98",
+      "approved_on": "2026-07-30",
+      "classification": "public"
+    },
+    {
+      "file": "09_case_study_retail_loyalty_intelligence.md",
+      "source_url": "https://aciinfotech.com/case-studies",
+      "source_document": "docs/case_studies/Loyalty with Real-Time Customer Intelligence- Racetrac.docx",
+      "sha256": "9497fa0c7b41711c9b7397b7d50d43a9471d1bea2d5129cbb5eaa498298f87d5",
+      "approved_on": "2026-07-30",
+      "classification": "provided-case-study"
+    },
+    {
+      "file": "10_case_study_pds_data_platform.md",
+      "source_url": "https://aciinfotech.com/case-studies/retail-transformation-data-driven-decisions",
+      "source_document": "docs/case_studies/from disparate systems to data-driven decisions- the pds transformation.docx",
+      "sha256": "b8243b6461498ef5698fc7c981480ff2980f3017f817c9e6726ab459a3b047f4",
+      "approved_on": "2026-07-30",
+      "classification": "public"
+    },
+    {
+      "file": "11_case_study_shift_left_medical_device_security.md",
+      "source_url": "https://aciinfotech.com/case-studies/aci-drives-shift-left-cybersecurity-for-medical-device-innovation",
+      "source_document": "docs/case_studies/ACI Drives Shift-Left Cybersecurity for Medical Device Innov.docx",
+      "sha256": "8d785c796bee19357e09515f2839ba67dd60e0e243b75fca3e4f7713df7194c6",
+      "approved_on": "2026-07-30",
+      "classification": "public"
+    },
+    {
+      "file": "12_service_catalog.md",
+      "source_url": "https://aciinfotech.com/services",
+      "sha256": "acae4b5cfa4c3c62d6430719f345406deb1894ec3ec8857745bd4fde3514dbe1",
+      "approved_on": "2026-07-30",
+      "classification": "public"
+    },
+    {
+      "file": "13_industry_catalog.md",
+      "source_url": "https://aciinfotech.com/industries",
+      "sha256": "fdc83ccacc229c40e97d4c64c19cbbe2bac614909ac7d620593ac59f85d9445d",
+      "approved_on": "2026-07-30",
       "classification": "public"
     }
   ]

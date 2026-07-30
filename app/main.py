@@ -30,7 +30,13 @@ from app.evidence import (
 )
 from app.limits import check_and_charge, limits_configuration, limits_usage
 from app.models import ChatRequest, ChatResponse, Source
-from app.rag import generate_answer, mongo_client, retrieve, seed_bundled_corpus
+from app.rag import (
+    OUT_OF_SCOPE_MESSAGE,
+    generate_answer,
+    mongo_client,
+    retrieve,
+    seed_bundled_corpus,
+)
 from app.security import (
     require_audit_key,
     require_chatbot_key,
@@ -49,6 +55,7 @@ from app.text_utils import (
     contains_prompt_injection,
     contains_sensitive_extraction_request,
     contains_unsupported_realtime_request,
+    is_clearly_out_of_scope,
     redact_pii,
 )
 
@@ -260,7 +267,36 @@ async def chat(payload: ChatRequest) -> ChatResponse:
             duration_ms=round((time.perf_counter() - started) * 1000),
         )
         return ChatResponse(
-            answer="Current weather is not available in the approved knowledge base.",
+            answer=OUT_OF_SCOPE_MESSAGE,
+            sources=[],
+            request_id=request_id,
+            grounded=False,
+        )
+    if is_clearly_out_of_scope(question):
+        GUARDRAIL_BLOCKS.labels("out_of_scope").inc()
+        REQUESTS.labels("chat", "bounded_refusal").inc()
+        record_outcome(
+            status="bounded_refusal",
+            duration_ms=round((time.perf_counter() - started) * 1000),
+            endpoint="chat",
+            request_id=request_id,
+            reason="out_of_scope",
+        )
+        record_stage(
+            request_id,
+            name="scope_guardrail",
+            status="blocked",
+            summary="The ACI domain boundary refused an unrelated request before retrieval.",
+            duration_ms=round((time.perf_counter() - input_guardrail_started) * 1000),
+            metrics={"retrieval_started": False, "model_called": False},
+        )
+        complete_trace(
+            request_id,
+            status="blocked",
+            duration_ms=round((time.perf_counter() - started) * 1000),
+        )
+        return ChatResponse(
+            answer=OUT_OF_SCOPE_MESSAGE,
             sources=[],
             request_id=request_id,
             grounded=False,

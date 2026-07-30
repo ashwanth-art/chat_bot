@@ -1,5 +1,5 @@
-from app.rag import bundled_aci_corpus
-from app.text_utils import chunk_text
+from app.rag import OUT_OF_SCOPE_MESSAGE, bundled_aci_corpus, bundled_aci_documents
+from app.text_utils import chunk_text, is_clearly_out_of_scope
 
 
 def test_chunk_text_empty():
@@ -14,9 +14,27 @@ def test_chunk_text_overlaps_and_preserves_content():
     assert chunks[-1].endswith("word299")
 
 
-def test_bundled_aci_corpus_combines_all_six_sources():
+def test_bundled_aci_corpus_combines_all_sources():
     corpus = bundled_aci_corpus().decode("utf-8")
-    assert corpus.count("retrieved_on:") == 6
+    assert corpus.count("retrieved_on:") == 13
     assert "Applied AI" in corpus
     assert "Healthcare" in corpus
     assert "Financial Services" in corpus
+    assert "Loyalty with real-time customer intelligence" in corpus
+    assert "PDS enterprise data-platform transformation" in corpus
+    assert "Shift-left cybersecurity for medical devices" in corpus
+
+
+def test_bundled_aci_documents_preserve_source_names():
+    names = [name for name, _ in bundled_aci_documents()]
+    assert len(names) == 13
+    assert "12_service_catalog.md" in names
+    assert "13_industry_catalog.md" in names
+    assert len(names) == len(set(names))
+
+
+def test_obvious_unrelated_questions_are_rejected():
+    assert is_clearly_out_of_scope("What is tomorrow's weather in Mumbai?")
+    assert is_clearly_out_of_scope("Tell me a joke")
+    assert not is_clearly_out_of_scope("Does ACI provide retail forecasting services?")
+    assert "ACI Infotech" in OUT_OF_SCOPE_MESSAGE

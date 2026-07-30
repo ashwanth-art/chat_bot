@@ -189,23 +189,6 @@ article {
 
 .copy-answer:hover { color: var(--green-dark); background: var(--mint); }
 
-.sources {
-  margin-top: 13px;
-  padding-top: 11px;
-  border-top: 1px solid var(--line);
-  color: var(--muted);
-  font-size: 11px;
-}
-
-.sources summary { cursor: pointer; color: var(--green-dark); font-weight: 700; }
-.source-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
-.source-list span {
-  padding: 5px 8px;
-  border: 1px solid #d8e7df;
-  border-radius: 8px;
-  background: #f7fbf9;
-}
-
 .starter-panel {
   width: min(900px, 100%);
   margin: auto;
@@ -213,7 +196,6 @@ article {
 }
 
 .starter-panel[hidden] { display: none; }
-.eyebrow { margin: 0 0 8px; color: var(--green); font-size: 11px; font-weight: 850; letter-spacing: .14em; }
 .starter-panel h1 { margin: 0; font-size: clamp(28px, 4vw, 44px); letter-spacing: -.045em; }
 .starter-copy { max-width: 660px; margin: 11px 0 22px; color: var(--muted); line-height: 1.6; }
 

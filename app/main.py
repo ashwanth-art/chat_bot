@@ -52,6 +52,7 @@ from app.telemetry import (
     start_trace,
 )
 from app.text_utils import (
+    clean_answer_for_display,
     contains_prompt_injection,
     contains_sensitive_extraction_request,
     contains_unsupported_realtime_request,
@@ -345,7 +346,7 @@ async def chat(payload: ChatRequest) -> ChatResponse:
             },
         )
         validation_started = time.perf_counter()
-        answer = redact_pii(raw_answer)
+        answer = clean_answer_for_display(redact_pii(raw_answer))
         record_stage(
             request_id,
             name="output_validation",

@@ -105,6 +105,23 @@ def redact_pii(text: str) -> str:
     return text
 
 
+def clean_answer_for_display(text: str) -> str:
+    """Remove internal RAG references and lightweight Markdown from a user-facing answer."""
+    text = re.sub(r"\[\s*source\s*:[^\]]+\]", "", text, flags=re.IGNORECASE)
+    text = re.sub(
+        r"(?im)^\s*(?:sources?|references?)\s*:\s*.*(?:\n|$)",
+        "",
+        text,
+    )
+    text = re.sub(r"(?i)\b[\w.-]+\.(?:md|txt|csv)#\d+\b", "", text)
+    text = re.sub(r"(\*\*|__)(.*?)\1", r"\2", text)
+    text = re.sub(r"(?m)^\s*[-*]\s+", "• ", text)
+    text = re.sub(r"[ \t]+\n", "\n", text)
+    text = re.sub(r"\n{3,}", "\n\n", text)
+    text = re.sub(r" {2,}", " ", text)
+    return text.strip()
+
+
 def chunk_text(text: str, size: int = 900, overlap: int = 120) -> list[str]:
     """Split normalized text into bounded, overlapping chunks."""
     clean = " ".join(text.replace("\x00", " ").split())

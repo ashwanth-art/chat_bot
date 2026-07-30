@@ -6,16 +6,8 @@ const sendButton = $("sendButton");
 const conversation = [];
 
 const greeting =
-  "Hello! I'm the ACI Knowledge Assistant. I can help you explore ACI Infotech's services, " +
-  "industries, technology capabilities, and approved case studies.";
-
-function friendlySourceName(filename) {
-  return filename
-    .replace(/^\d{2}_/, "")
-    .replace(/\.md$/i, "")
-    .replaceAll("_", " ")
-    .replace(/\b\w/g, (character) => character.toUpperCase());
-}
+  "Hello! I'm the ACI Chatbot Assistant. I can help you with information about ACI Infotech's " +
+  "services, industries, technology capabilities, and case studies.";
 
 function appendAnswerText(container, text) {
   const blocks = text.split(/\n{2,}/).filter(Boolean);
@@ -41,35 +33,7 @@ function addCopyButton(container, text) {
   container.appendChild(button);
 }
 
-function addSources(container, sources) {
-  if (!sources.length) return;
-
-  const uniqueSources = [...new Map(
-    sources.map((source) => [`${source.document}:${source.chunk}`, source])
-  ).values()];
-  const sourceBox = document.createElement("details");
-  sourceBox.className = "sources";
-  const bestScore = Math.round(
-    Math.max(...uniqueSources.map((source) => source.score)) * 100
-  );
-
-  const summary = document.createElement("summary");
-  summary.textContent =
-    `${uniqueSources.length} supporting source${uniqueSources.length === 1 ? "" : "s"} · best match ${bestScore}%`;
-  sourceBox.appendChild(summary);
-
-  const list = document.createElement("div");
-  list.className = "source-list";
-  for (const source of uniqueSources) {
-    const item = document.createElement("span");
-    item.textContent = `${friendlySourceName(source.document)} · chunk ${source.chunk}`;
-    list.appendChild(item);
-  }
-  sourceBox.appendChild(list);
-  container.appendChild(sourceBox);
-}
-
-function addMessage(kind, text, sources = []) {
+function addMessage(kind, text) {
   const article = document.createElement("article");
   article.className = kind;
 
@@ -91,7 +55,6 @@ function addMessage(kind, text, sources = []) {
   } else {
     appendAnswerText(body, text);
     if (kind.startsWith("assistant") && !kind.includes("error")) {
-      addSources(body, sources);
       addCopyButton(body, text);
     }
   }
@@ -152,7 +115,7 @@ async function askQuestion(text) {
     if (!response.ok) {
       throw new Error(result.detail || "The chatbot is temporarily unavailable.");
     }
-    addMessage("assistant", result.answer, result.sources);
+    addMessage("assistant", result.answer);
     conversation.push({role: "assistant", content: result.answer});
   } catch (error) {
     thinking.remove();

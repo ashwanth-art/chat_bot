@@ -49,7 +49,7 @@ function addMessage(kind, text) {
   if (kind.includes("thinking")) {
     const thinking = document.createElement("div");
     thinking.className = "thinking-label";
-    thinking.innerHTML = "<span></span><span></span><span></span><em>Searching approved ACI sources</em>";
+    thinking.innerHTML = "<span></span><span></span><span></span>";
     body.appendChild(thinking);
   } else {
     appendAnswerText(body, text);
